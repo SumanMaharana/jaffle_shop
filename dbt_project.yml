@@ -24,3 +24,7 @@ models:
       materialized: table
       staging:
         materialized: view
+tests:
+  +meta:
+    test_suite_name: DBT TEST SUITE
+    test_suite_desciption: Dbt test suite description
