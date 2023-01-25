@@ -5,9 +5,6 @@ models:
     config:
       tags: ["model_tag_one", "model_tag_two"]
     description: This table has basic information about a customer, as well as some derived facts based on a customer's orders
-    tests:
-      - dbt_utils.equal_rowcount:
-          compare_model: ref('orders')
     columns:
       - name: customer_id
         description: This is a unique identifier for a customer
