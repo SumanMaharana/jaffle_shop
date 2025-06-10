@@ -18,6 +18,9 @@ models:
         tests:
           - accepted_values:
               values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
+      - name: cycle_name
+        tests:
+          - not_null
 
   - name: stg_payments
     columns:

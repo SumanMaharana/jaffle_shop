@@ -77,6 +77,11 @@ models:
           - accepted_values:
               values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
 
+      - name: cycle_name
+        description: The name of the cycle associated with the order
+        tests:
+          - not_null
+
       - name: amount
         description: Total amount (AUD) of the order
         tests:
