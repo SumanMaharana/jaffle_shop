@@ -3,13 +3,10 @@ version: 2
 sources:
   - name: jaffle_shop
     description: Raw data from the jaffle shop application
-    freshness:
-      warn_after: {count: 1, period: day}
-      error_after: {count: 2, period: day}
     tables:
       - name: raw_customers
+
         description: Raw customer data from the application database
-        loaded_at_field: _dbt_loaded_at
         meta:
           owner: ['Data Engineering Team']
         config:
@@ -27,7 +24,6 @@ sources:
 
       - name: raw_orders
         description: Raw orders data from the application database
-        loaded_at_field: _dbt_loaded_at
         meta:
           owner: ['Data Engineering Team']
         config:
@@ -56,7 +52,6 @@ sources:
 
       - name: raw_payments
         description: Raw payments data from the application database
-        loaded_at_field: _dbt_loaded_at
         meta:
           owner: ['Data Engineering Team']
         config:
@@ -90,18 +85,19 @@ models:
     meta:
       openmetadata:
         glossary: [
-          'Test_Glossary.term_one',
-          'Test_Glossary.term_two.nested_term.more_nested_term',
+          'Customer_Data.personal_information',
+          'Business_Metrics.customer_lifetime_value',
+          'E_Commerce.customer_behavior',
         ]
         tier: 'Tier.Tier2'
         domain: Marketing
         customProperties:
-          dbtCustomerProp: "jane@gmail.com"
+          dbtCustomerProp: "carolyn_hill3@gmail.com"
           dbtCustomerProp2: 78
           nonAvailableCustomerProperty: nonAvailableValue
-        owner: ['John Doe', 'jane@gmail.com']
+        owner: ['Aaron Johnson', 'carolyn_hill3@gmail.com']
     config:
-      tags: ["model_tag_one", "model_tag_two"]
+      tags: ["customer_analytics", "core_business", "pii_data"]
     description: This table has basic information about a customer, as well as some derived facts based on a customer's orders
     columns:
       - name: customer_id
@@ -117,14 +113,14 @@ models:
         description: Customer's last name. PII.
 
       - name: first_order
-        tags: ["tags_column_one"]
+        tags: ["temporal_data", "order_analytics"]
         description: Date (UTC) of a customer's first order
 
       - name: most_recent_order
         description: Date (UTC) of a customer's most recent order
 
       - name: number_of_orders
-        tags: ["tags_column_one", "tags_column_two"]
+        tags: ["kpi_metric", "customer_behavior"]
         description: Count of the number of orders a customer has placed
 
       - name: total_order_amount
@@ -134,19 +130,20 @@ models:
     meta:
       openmetadata:
         glossary: [
-          'Test_Glossary.term_one',
-          'Test_Glossary.term_two.nested_term.more_nested_term',
+          'E_Commerce.order_management',
+          'Financial_Data.transaction_records',
+          'Business_Operations.fulfillment_cycle',
         ]
         tier: 'Tier.Tier2'
         domain: Banking
         customProperties:
-          dbtCustomProperty2: "jane@gmail.com"
+          dbtCustomProperty2: "carolyn_hill3@gmail.com"
           dbtProp: 78
           nonAvailableProperty: nonAvailableValue
-      owner: 'jane@gmail.com'
+      owner: 'Accounting'
     description: This table has basic information about orders, as well as some derived facts based on payments
     config:
-      tags: "single_tag"
+      tags: ["order_analytics", "transactional_data", "core_business"]
     columns:
       - name: order_id
         tests:
@@ -166,7 +163,7 @@ models:
         description: Date (UTC) that the order was placed
 
       - name: status
-        tags: ["tags_column_one", "tags_column_status"]
+        tags: ["order_status", "workflow_tracking"]
         description: '{{ doc("orders_status") }}'
         tests:
           - accepted_values:
