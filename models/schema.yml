@@ -3,9 +3,13 @@ version: 2
 sources:
   - name: jaffle_shop
     description: Raw data from the jaffle shop application
+    freshness:
+      warn_after: {count: 1, period: day}
+      error_after: {count: 2, period: day}
     tables:
       - name: raw_customers
         description: Raw customer data from the application database
+        loaded_at_field: _dbt_loaded_at
         meta:
           owner: ['Data Engineering Team']
         config:
@@ -23,6 +27,7 @@ sources:
 
       - name: raw_orders
         description: Raw orders data from the application database
+        loaded_at_field: _dbt_loaded_at
         meta:
           owner: ['Data Engineering Team']
         config:
@@ -51,6 +56,7 @@ sources:
 
       - name: raw_payments
         description: Raw payments data from the application database
+        loaded_at_field: _dbt_loaded_at
         meta:
           owner: ['Data Engineering Team']
         config:
@@ -88,7 +94,12 @@ models:
           'Test_Glossary.term_two.nested_term.more_nested_term',
         ]
         tier: 'Tier.Tier2'
-      owner: ['John Doe', 'jane@gmail.com']
+        domain: Marketing
+        customProperties:
+          dbtCustomerProp: "jane@gmail.com"
+          dbtCustomerProp2: 78
+          nonAvailableCustomerProperty: nonAvailableValue
+        owner: ['John Doe', 'jane@gmail.com']
     config:
       tags: ["model_tag_one", "model_tag_two"]
     description: This table has basic information about a customer, as well as some derived facts based on a customer's orders
@@ -127,6 +138,11 @@ models:
           'Test_Glossary.term_two.nested_term.more_nested_term',
         ]
         tier: 'Tier.Tier2'
+        domain: Banking
+        customProperties:
+          dbtCustomProperty2: "jane@gmail.com"
+          dbtProp: 78
+          nonAvailableProperty: nonAvailableValue
       owner: 'jane@gmail.com'
     description: This table has basic information about orders, as well as some derived facts based on payments
     config:
