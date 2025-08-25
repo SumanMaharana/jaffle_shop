@@ -2,6 +2,7 @@ version: 2
 
 sources:
   - name: jaffle_shop
+    schema: dbt_production
     description: Raw data from the jaffle shop application
     tables:
       - name: raw_customers
@@ -9,6 +10,7 @@ sources:
         description: Raw customer data from the application database
         meta:
           owner: ['Data', 'Candice Taylor']
+          schema_name: "dbt_prod"
         config:
           tags: ["raw_data", "customer_data"]
         columns:
