@@ -45,8 +45,8 @@ sources:
           - name: status
             description: Current status of the order
             tests:
-              arguments:
               - accepted_values:
+                  arguments:
                     values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
           - name: cycle_name
             description: Name of the cycle associated with the order
@@ -72,8 +72,8 @@ sources:
           - name: payment_method
             description: Method used for payment
             tests:
-              arguments:
               - accepted_values:
+                  arguments:
                     values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
           - name: amount
             description: Payment amount in cents
@@ -171,8 +171,8 @@ models:
         tags: ["order_status", "workflow_tracking"]
         description: '{{ doc("orders_status") }}'
         tests:
-          arguments:
           - accepted_values:
+              arguments:
                 values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
 
       - name: cycle_name
