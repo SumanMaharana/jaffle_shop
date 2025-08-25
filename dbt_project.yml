@@ -1,9 +1,9 @@
-name: 'jaffle_shop'
+name: 'marketing'
 
 config-version: 2
 version: '0.1'
 
-profile: 'jaffle_shop'
+profile: 'marketing'
 
 model-paths: ["models"]
 seed-paths: ["seeds"]
@@ -20,14 +20,14 @@ clean-targets:
 require-dbt-version: [">=1.0.0", "<2.0.0"]
 
 models:
-  jaffle_shop:
+  marketing:
       materialized: table
       staging:
         materialized: view
 
 seeds:
-  jaffle_shop:
-    +schema: jaffle_shop
+  marketing:
+    +schema: marketing
 tests:
   +meta:
     test_suite_name: DBT TEST SUITE

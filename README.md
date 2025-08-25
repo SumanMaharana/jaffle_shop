@@ -1,6 +1,6 @@
-## Testing dbt project: `jaffle_shop`
+## Testing dbt project: `marketing`
 
-`jaffle_shop` is a fictional ecommerce store. This dbt project transforms raw data from an app database into a customers and orders model ready for analytics.
+`marketing` is a fictional ecommerce store. This dbt project transforms raw data from an app database into a customers and orders model ready for analytics.
 
 ### What is this repo?
 What this repo _is_:
@@ -19,7 +19,7 @@ This repo contains [seeds](https://docs.getdbt.com/docs/building-a-dbt-project/s
 
 The raw data consists of customers, orders, and payments, with the following entity-relationship diagram:
 
-![Jaffle Shop ERD](/etc/jaffle_shop_erd.png)
+![Jaffle Shop ERD](/etc/marketing_erd.png)
 
 
 ### Running this project
@@ -28,12 +28,12 @@ To get up and running with this project:
 
 2. Clone this repository.
 
-3. Change into the `jaffle_shop` directory from the command line:
+3. Change into the `marketing` directory from the command line:
 ```bash
-$ cd jaffle_shop
+$ cd marketing
 ```
 
-4. Set up a profile called `jaffle_shop` to connect to a data warehouse by following [these instructions](https://docs.getdbt.com/docs/configure-your-profile). If you have access to a data warehouse, you can use those credentials – we recommend setting your [target schema](https://docs.getdbt.com/docs/configure-your-profile#section-populating-your-profile) to be a new schema (dbt will create the schema for you, as long as you have the right privileges). If you don't have access to an existing data warehouse, you can also setup a local postgres database and connect to it in your profile.
+4. Set up a profile called `marketing` to connect to a data warehouse by following [these instructions](https://docs.getdbt.com/docs/configure-your-profile). If you have access to a data warehouse, you can use those credentials – we recommend setting your [target schema](https://docs.getdbt.com/docs/configure-your-profile#section-populating-your-profile) to be a new schema (dbt will create the schema for you, as long as you have the right privileges). If you don't have access to an existing data warehouse, you can also setup a local postgres database and connect to it in your profile.
 
 5. Ensure your profile is setup correctly from the command line:
 ```bash

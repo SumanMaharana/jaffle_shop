@@ -1,7 +1,7 @@
 version: 2
 
 sources:
-  - name: jaffle_shop
+  - name: marketing
     schema: dbt_production
     description: Raw data from the jaffle shop application
     tables:
