@@ -9,8 +9,7 @@ sources:
 
         description: Raw customer data from the application database
         meta:
-          owner: ['Data', 'Candice Taylor']
-          schema_name: "dbt_prod"
+          owner: ['Candice Taylor']
         config:
           tags: ["raw_data", "customer_data"]
         columns:
@@ -27,7 +26,7 @@ sources:
       - name: raw_orders
         description: Raw orders data from the application database
         meta:
-          owner: ['Data', 'Alexander Jackson']
+          owner: ['Alexander Jackson']
         config:
           tags: ["raw_data", "order_data"]
         columns:
@@ -56,7 +55,7 @@ sources:
       - name: raw_payments
         description: Raw payments data from the application database
         meta:
-          owner: ['Data', 'Brian Smith']
+          owner: ['Brian Smith']
         config:
           tags: ["raw_data", "payment_data"]
         columns:
