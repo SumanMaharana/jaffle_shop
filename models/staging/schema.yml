@@ -1,5 +1,87 @@
 version: 2
 
+sources:
+  - name: jaffle_shop
+    schema: dbt_production
+    description: Raw data from the jaffle shop application
+    tables:
+      - name: raw_customers
+        description: Raw customer data from the application database
+        meta:
+          owner: ['Candice Taylor']
+        config:
+          tags: ["raw_data", "customer_data"]
+        columns:
+          - name: id
+            description: Unique identifier for customers
+            tests:
+              - unique
+              - not_null
+          - name: first_name
+            description: Customer's first name
+          - name: last_name
+            description: Customer's last name
+
+      - name: raw_orders
+        description: Raw orders data from the application database
+        meta:
+          owner: ['Alexander Jackson']
+        config:
+          tags: ["raw_data", "order_data"]
+        columns:
+          - name: id
+            description: Unique identifier for orders
+            tests:
+              - unique
+              - not_null
+          - name: user_id
+            description: Foreign key to customers
+            tests:
+              - not_null
+          - name: order_date
+            description: Date when the order was placed
+          - name: status
+            description: Current status of the order
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
+          - name: cycle_name
+            description: Name of the cycle associated with the order
+            tests:
+              - not_null
+
+      - name: raw_payments
+        description: Raw payments data from the application database
+        meta:
+          owner: ['Brian Smith']
+        config:
+          tags: ["raw_data", "payment_data"]
+        columns:
+          - name: id
+            description: Unique identifier for payments
+            tests:
+              - unique
+              - not_null
+          - name: order_id
+            description: Foreign key to orders
+            tests:
+              - not_null
+          - name: payment_method
+            description: Method used for payment
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+          - name: amount
+            description: Payment amount in cents
+            tests:
+              - not_null
+          - name: cycle_name
+            description: Name of the cycle associated with the payment
+            tests:
+              - not_null
+
 models:
   - name: stg_customers
     description: Staging table for customer data - cleaned and standardized raw customer information
