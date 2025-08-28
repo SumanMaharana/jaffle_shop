@@ -2,6 +2,7 @@ version: 2
 
 sources:
   - name: jaffle_shop
+    schema: dbt_production
     description: Raw data from the jaffle shop application
     tables:
       - name: raw_customers
