@@ -2,13 +2,18 @@ version: 2
 
 sources:
   - name: dbt_production
-    description: Production database tables containing raw customer, order, and payment data for marketing analytics
+    description: |
+      Production data sources including raw tables and staging views created by the base dbt pipeline.
+      These sources serve as the foundation for all marketing analytics transformations.
+      Raw tables are not directly accessible; staging views provide the cleaned and standardized data.
     database: "{{ target.database }}"
     schema: dbt_production
     meta:
       owner: "Marketing Analytics Team"
       domain: "Marketing"
       data_classification: "Internal"
+      pipeline_source: "Base ETL Pipeline"
+    tags: ["source_data", "base_pipeline", "external_dependency"]
 
     tables:
       # Raw tables - these don't actually exist in our environment
@@ -60,9 +65,15 @@ sources:
 
       # Staging views created by base dbt pipeline
       - name: stg_customers
-        description: Staging view for customers with standardized naming
+        description: |
+          Staging view for customer data with standardized column names and data types.
+          Created by the base dbt pipeline, this view provides clean customer master data
+          with consistent naming conventions and data quality checks already applied.
         meta:
           created_by: "base_pipeline"
+          refresh_frequency: "daily"
+          contains_pii: true
+        tags: ["staging", "customer_data", "pii"]
         columns:
           - name: customer_id
             description: Standardized customer identifier
@@ -79,9 +90,15 @@ sources:
               - not_null
 
       - name: stg_orders
-        description: Staging view for orders created by base pipeline
+        description: |
+          Staging view for order transactions with standardized formatting.
+          Provides clean order data with proper data types, consistent status values,
+          and foreign key relationships to customers. Core transactional fact data.
         meta:
           created_by: "base_pipeline"
+          refresh_frequency: "hourly"
+          data_quality: "high"
+        tags: ["staging", "transactional_data", "order_data"]
         columns:
           - name: order_id
             description: Standardized order identifier
@@ -106,9 +123,15 @@ sources:
               - not_null
 
       - name: stg_payments
-        description: Staging view for payments created by base pipeline
+        description: |
+          Staging view for payment transactions with standardized payment methods.
+          Includes amount conversions (cents to dollars) and validated payment types.
+          Links to orders for complete transaction visibility.
         meta:
           created_by: "base_pipeline"
+          refresh_frequency: "real-time"
+          data_sensitivity: "financial"
+        tags: ["staging", "payment_data", "financial"]
         columns:
           - name: payment_id
             description: Standardized payment identifier

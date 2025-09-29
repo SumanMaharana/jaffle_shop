@@ -24,21 +24,35 @@ models:
     # Default materialization
     +materialized: table
     +schema: marketing  # Create models in dbt_test_marketing schema
+    +tags: ['marketing_pipeline']
+
+    # Core business models
+    customers:
+      +tags: ['core', 'dimension', 'customer_data', 'pii']
+      +description: "Customer dimension with lifetime metrics"
+    orders:
+      +tags: ['core', 'fact', 'transactional', 'order_data']
+      +description: "Order fact table with payment breakdowns"
 
     # Staging model (only stg_customer_activity remains as a model)
     stg_customer_activity:
       +materialized: view
-      +tags: ['staging', 'unified']
+      +tags: ['staging', 'unified', 'customer_360']
+      +description: "Unified customer activity for marketing analytics"
 
     # Marketing analytics models
     customer_segmentation:
-      +tags: ['marketing', 'customer_analytics']
+      +tags: ['marketing', 'customer_analytics', 'rfm', 'segmentation']
+      +description: "RFM-based customer segmentation"
     product_performance:
-      +tags: ['marketing', 'product_analytics']
+      +tags: ['marketing', 'product_analytics', 'abc_analysis']
+      +description: "Product performance and ABC classification"
     customer_cohorts:
-      +tags: ['marketing', 'cohort_analysis']
+      +tags: ['marketing', 'cohort_analysis', 'retention', 'ltv']
+      +description: "Cohort retention and LTV analysis"
     marketing_attribution:
-      +tags: ['marketing', 'attribution']
+      +tags: ['marketing', 'attribution', 'channel_analytics', 'roi']
+      +description: "Marketing channel attribution and ROI"
 
 tests:
   +meta:

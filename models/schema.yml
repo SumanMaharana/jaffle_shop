@@ -1,12 +1,102 @@
 version: 2
 
 models:
-  # ============== STAGING MODELS ==============
-  # Note: stg_customers, stg_orders, stg_payments are created by base pipeline
-  # and are defined as sources in sources.yml
+  # ============== CORE BUSINESS MODELS ==============
+  - name: customers
+    description: |
+      Core customer dimension table containing customer master data with aggregated order metrics.
+      This model combines customer demographic information with their lifetime purchase behavior,
+      serving as the foundation for customer analytics and segmentation.
+    meta:
+      openmetadata:
+        tier: 'Tier.Tier2'
+        domain: Marketing
+        owner: ['Customer Success Team']
+    config:
+      tags: ["customer_analytics", "core_business", "pii_data"]
+    columns:
+      - name: customer_id
+        description: Unique customer identifier from source system
+        tests:
+          - unique
+          - not_null
+      - name: first_name
+        description: Customer's first name (PII)
+        tests:
+          - not_null
+      - name: last_name
+        description: Customer's last name (PII)
+        tests:
+          - not_null
+      - name: customer_lifetime_value
+        description: Total monetary value of all customer purchases in dollars
+        tests:
+          - not_null
+          - positive_value
+      - name: first_order
+        description: Date of customer's first purchase
+      - name: most_recent_order
+        description: Date of customer's most recent purchase
+      - name: number_of_orders
+        description: Total count of orders placed by the customer
+        tests:
+          - not_null
+          - positive_value
 
+  - name: orders
+    description: |
+      Transactional fact table containing order details with payment method breakdowns.
+      This model enriches order data with payment information, providing a complete view
+      of each transaction including payment method splits and total amounts.
+    meta:
+      openmetadata:
+        tier: 'Tier.Tier2'
+        domain: Sales
+        owner: ['Sales Operations Team']
+    config:
+      tags: ["transactional_data", "core_business", "sales_analytics"]
+    tests:
+      - relationships:
+          arguments:
+            to: ref('customers')
+            field: customer_id
+    columns:
+      - name: order_id
+        description: Unique order transaction identifier
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Foreign key to customers dimension
+        tests:
+          - not_null
+      - name: order_date
+        description: Timestamp of order placement
+        tests:
+          - not_null
+      - name: status
+        description: Current order fulfillment status (placed, shipped, completed, returned, return_pending)
+      - name: cycle_name
+        description: Product name (bicycle model) associated with the order
+      - name: amount
+        description: Total order amount in dollars (aggregated from all payment methods)
+        tests:
+          - positive_value
+
+  # ============== STAGING MODELS ==============
   - name: stg_customer_activity
-    description: Unified customer activity view for marketing analytics
+    description: |
+      Unified customer activity view that combines customer, order, and payment data.
+      This staging model serves as the primary input for marketing analytics models,
+      providing a denormalized view of customer transactions with calculated fields
+      for segmentation and analysis.
+    meta:
+      openmetadata:
+        tier: 'Tier.Tier3'
+        domain: Marketing
+        owner: ['Data Engineering Team']
+    config:
+      tags: ["staging", "marketing_prep", "customer_360"]
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -16,25 +106,63 @@ models:
             - payment_id
     columns:
       - name: customer_id
-        description: Customer identifier
+        description: Customer identifier linked to master customer record
         tests:
           - not_null
+      - name: first_name
+        description: Customer's first name from master data
+      - name: last_name
+        description: Customer's last name from master data
+      - name: order_id
+        description: Order transaction identifier
+      - name: order_date
+        description: Date when order was placed
+      - name: status
+        description: Order status in fulfillment lifecycle
+      - name: cycle_name
+        description: Product (bicycle model) ordered
+      - name: order_status_group
+        description: Simplified order status grouping (successful, returned, other)
+      - name: order_month
+        description: Month extracted from order date for cohort analysis
+      - name: order_year
+        description: Year extracted from order date for trend analysis
+      - name: order_day_of_week
+        description: Day of week (0=Sunday, 6=Saturday) for pattern analysis
+      - name: order_quarter
+        description: Quarter for seasonal analysis
+      - name: customer_stage
+        description: Customer lifecycle stage (new, active, loyal)
+      - name: payment_id
+        description: Unique payment transaction identifier
+      - name: payment_method
+        description: Payment type used (credit_card, coupon, bank_transfer, gift_card)
+      - name: amount
+        description: Payment amount in dollars
+      - name: payment_category
+        description: Grouped payment type (standard, promotional, other)
+      - name: is_promotional
+        description: Boolean flag indicating promotional payment (coupon or gift card)
       - name: cumulative_customer_value
-        description: Running total of customer spend
+        description: Running total of customer lifetime spend up to each order
         tests:
           - not_null
           - positive_value
 
-  # ============== MARKETING MODELS ==============
+  # ============== MARKETING ANALYTICS MODELS ==============
   - name: customer_segmentation
-    description: RFM-based customer segmentation for targeted marketing
+    description: |
+      RFM (Recency, Frequency, Monetary) based customer segmentation model.
+      Classifies customers into actionable segments for targeted marketing campaigns
+      based on their purchase behavior patterns. Includes value tiers and engagement
+      levels for multi-dimensional targeting strategies.
     meta:
       openmetadata:
         tier: 'Tier.Tier1'
         domain: Marketing
         owner: ['Marketing Analytics Team']
     config:
-      tags: ["marketing", "customer_analytics", "segmentation"]
+      tags: ["marketing", "customer_analytics", "segmentation", "rfm_analysis"]
     tests:
       - dbt_utils.recency:
           arguments:
@@ -43,60 +171,64 @@ models:
             interval: 1
     columns:
       - name: customer_id
-        description: Unique customer identifier
+        description: Unique customer identifier for joining with other models
         tests:
           - unique
           - not_null
+      - name: first_name
+        description: Customer's first name for personalization
+      - name: last_name
+        description: Customer's last name for personalization
       - name: days_since_last_order
-        description: Recency metric in days
+        description: Recency metric - days elapsed since last purchase
         tests:
           - not_null
           - positive_value
       - name: total_orders
-        description: Frequency metric
+        description: Frequency metric - total number of purchases
         tests:
           - not_null
           - positive_value
       - name: total_revenue
-        description: Monetary value metric
+        description: Monetary metric - total customer spend in dollars
         tests:
           - not_null
           - positive_value
       - name: avg_order_value
-        description: Average order value per customer
+        description: Average transaction value per order
         tests:
           - not_null
           - positive_value
       - name: recency_score
-        description: RFM recency score (1-5)
+        description: RFM recency score (1-5, where 5 is most recent)
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [1, 2, 3, 4, 5]
       - name: frequency_score
-        description: RFM frequency score (1-5)
+        description: RFM frequency score (1-5, where 5 is most frequent)
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [1, 2, 3, 4, 5]
       - name: monetary_score
-        description: RFM monetary score (1-5)
+        description: RFM monetary score (1-5, where 5 is highest value)
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [1, 2, 3, 4, 5]
       - name: customer_segment
-        description: Customer segment based on RFM analysis
+        description: Customer segment classification based on RFM scores
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ['Champions', 'Loyal Customers', 'Potential Loyalists', 'New Customers', 'Promising', 'Need Attention', 'At Risk', 'Cant Lose Them', 'Hibernating', 'Lost']
       - name: value_tier
-        description: Customer value classification
+        description: Customer value classification (High, Medium, Low)
         tests:
           - not_null
           - accepted_values:
@@ -110,19 +242,22 @@ models:
               arguments:
                 values: ['Highly Engaged', 'Moderately Engaged', 'Low Engagement']
       - name: promotional_spend_ratio
-        description: Ratio of promotional spend to total spend
+        description: Percentage of spend on promotional items
         tests:
           - not_null
 
   - name: product_performance
-    description: Comprehensive product analytics for marketing decisions
+    description: |
+      Comprehensive product analytics model tracking performance metrics across the product catalog.
+      Includes sales metrics, return rates, promotional impact, market penetration, and ABC analysis
+      for inventory and marketing optimization. Provides actionable insights for product strategy.
     meta:
       openmetadata:
         tier: 'Tier.Tier1'
         domain: Marketing
-        owner: ['Product Marketing Team']
+        owner: ['Product Team']
     config:
-      tags: ["marketing", "product_analytics", "performance"]
+      tags: ["marketing", "product_analytics", "inventory_optimization", "abc_analysis"]
     tests:
       - dbt_utils.recency:
           arguments:
@@ -131,62 +266,66 @@ models:
             interval: 1
     columns:
       - name: cycle_name
-        description: Product name (cycle/bicycle model)
+        description: Product identifier (bicycle model name)
         tests:
           - unique
           - not_null
       - name: total_orders
-        description: Total number of orders for product
+        description: Total number of orders containing this product
         tests:
           - not_null
           - positive_value
       - name: unique_customers
-        description: Number of unique customers who purchased
+        description: Count of distinct customers who purchased this product
         tests:
           - not_null
           - positive_value
       - name: total_revenue
-        description: Total revenue generated by product
+        description: Total revenue generated by this product in dollars
         tests:
           - not_null
           - positive_value
-      - name: return_rate
-        description: Product return rate
+      - name: market_penetration
+        description: Percentage of total customer base that has purchased this product
         tests:
           - not_null
-      - name: market_penetration
-        description: Percentage of total customers who bought product
+      - name: return_rate
+        description: Percentage of orders that were returned
         tests:
           - not_null
       - name: abc_category
-        description: ABC analysis category
+        description: ABC inventory classification based on revenue contribution
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ['A', 'B', 'C']
       - name: product_status
-        description: Product lifecycle status
+        description: Product lifecycle and performance classification
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ['Star', 'Problem', 'Cash Cow', 'New', 'Declining', 'Standard']
       - name: revenue_rank
-        description: Product ranking by revenue
+        description: Product ranking by total revenue (1 is highest)
         tests:
           - not_null
           - positive_value
 
   - name: customer_cohorts
-    description: Cohort analysis for retention and LTV tracking
+    description: |
+      Cohort-based retention and lifetime value analysis model.
+      Tracks customer cohorts by acquisition month and analyzes retention patterns,
+      revenue evolution, and cohort quality over time. Essential for understanding
+      customer lifecycle and optimizing acquisition channel investments.
     meta:
       openmetadata:
         tier: 'Tier.Tier1'
         domain: Marketing
         owner: ['Retention Team']
     config:
-      tags: ["marketing", "cohort_analysis", "retention"]
+      tags: ["marketing", "cohort_analysis", "retention", "ltv_analysis"]
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -195,39 +334,39 @@ models:
             - months_since_first_purchase
     columns:
       - name: cohort_month
-        description: Month when cohort started
+        description: Month when cohort was acquired (first purchase month)
         tests:
           - not_null
       - name: months_since_first_purchase
-        description: Months elapsed since cohort start
+        description: Number of months elapsed since cohort acquisition
         tests:
           - not_null
       - name: cohort_size
-        description: Original size of cohort
+        description: Number of customers in the acquisition cohort
         tests:
           - not_null
           - positive_value
       - name: customers_active
-        description: Number of active customers in period
+        description: Number of customers active in the given month
         tests:
           - not_null
       - name: retention_rate
-        description: Percentage of cohort retained
+        description: Percentage of original cohort still active
         tests:
           - not_null
       - name: cohort_revenue
-        description: Revenue generated by cohort in period
+        description: Total revenue from cohort in the given month
         tests:
           - not_null
       - name: cohort_quality
-        description: Quality classification of cohort
+        description: Overall cohort quality classification
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ['Premium', 'High Value', 'Standard', 'Below Average', 'At Risk']
       - name: retention_stage
-        description: Stage in customer lifecycle
+        description: Customer lifecycle stage classification
         tests:
           - not_null
           - accepted_values:
@@ -235,17 +374,21 @@ models:
                 values: ['Acquisition', 'Activation', 'Retention', 'Revenue', 'Referral']
 
   - name: marketing_attribution
-    description: Marketing channel attribution and performance analysis
+    description: |
+      Marketing channel attribution and performance analysis model.
+      Analyzes conversion paths and channel effectiveness using synthetic attribution logic.
+      Provides insights into channel ROI, customer acquisition costs, and optimal channel mix
+      for marketing budget allocation.
     meta:
       openmetadata:
         tier: 'Tier.Tier1'
         domain: Marketing
         owner: ['Performance Marketing Team']
     config:
-      tags: ["marketing", "attribution", "channel_performance"]
+      tags: ["marketing", "attribution", "channel_performance", "roi_analysis"]
     columns:
       - name: attribution_channel
-        description: Marketing channel attribution
+        description: Marketing channel attributed to conversions
         tests:
           - unique
           - not_null
@@ -253,17 +396,17 @@ models:
               arguments:
                 values: ['Promotional Campaign', 'Social Media', 'Email Marketing', 'New Year Campaign', 'Organic']
       - name: total_conversions
-        description: Total conversions by channel
+        description: Number of successful conversions attributed to channel
         tests:
           - not_null
           - positive_value
       - name: unique_customers
-        description: Unique customers acquired
+        description: Number of unique customers acquired through channel
         tests:
           - not_null
           - positive_value
       - name: total_revenue
-        description: Revenue attributed to channel
+        description: Total revenue attributed to channel in dollars
         tests:
           - not_null
           - positive_value
@@ -275,70 +418,8 @@ models:
               arguments:
                 values: ['High Performer', 'Growth Driver', 'Premium Channel', 'Efficient Converter', 'Standard Channel']
 
-  # ============== CORE BUSINESS MODELS ==============
-  - name: customers
-    description: Customer 360 view with lifetime value metrics
-    meta:
-      openmetadata:
-        tier: 'Tier.Tier2'
-        domain: Marketing
-        owner: ['Customer Success Team']
-    config:
-      tags: ["customer_analytics", "core_business", "pii_data"]
-    columns:
-      - name: customer_id
-        description: Unique customer identifier
-        tests:
-          - unique
-          - not_null
-      - name: first_order
-        description: Date of first order
-        tests:
-          - not_null
-      - name: most_recent_order
-        description: Date of most recent order
-        tests:
-          - not_null
-      - name: number_of_orders
-        description: Total number of orders
-        tests:
-          - not_null
-          - positive_value
-      - name: customer_lifetime_value
-        description: Total customer spend
-        tests:
-          - not_null
-          - positive_value
-
-  - name: orders
-    description: Order-level analytics with payment method breakdown
-    meta:
-      openmetadata:
-        tier: 'Tier.Tier2'
-        domain: Operations
-        owner: ['Operations Team']
-    config:
-      tags: ["order_analytics", "transactional_data", "core_business"]
-    columns:
-      - name: order_id
-        description: Unique order identifier
-        tests:
-          - unique
-          - not_null
-      - name: customer_id
-        description: Foreign key to customers
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('customers')
-                field: customer_id
-      - name: order_date
-        description: Date of order
-        tests:
-          - not_null
-      - name: amount
-        description: Total order amount
-        tests:
-          - not_null
-          - positive_value
+# ============== CUSTOM TEST DEFINITIONS ==============
+tests:
+  - name: positive_value
+    description: Ensures numeric values are positive (greater than zero)
+    test: positive_value
