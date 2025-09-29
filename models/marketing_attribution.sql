@@ -5,8 +5,7 @@
     )
 }}
 
--- Marketing Attribution Model for Campaign Performance Analysis
--- Since we don't have explicit campaign data, we'll create synthetic attribution based on patterns
+-- Simplified Marketing Attribution Model for Campaign Performance Analysis
 
 with customer_orders as (
     select
@@ -25,169 +24,60 @@ with customer_orders as (
 
         -- Create synthetic campaign attribution based on patterns
         case
-            -- Promotional payments indicate campaign response
             when is_promotional then 'Promotional Campaign'
-            -- Weekend orders might be from social media
             when order_day_of_week in (0, 6) then 'Social Media'
-            -- High-value orders might be from email campaigns
             when amount > 100 then 'Email Marketing'
-            -- First orders in Q1 might be from New Year campaigns
-            when order_quarter = 1 and row_number() over (partition by customer_id order by order_date) = 1 then 'New Year Campaign'
-            -- Default to organic
+            when order_quarter = 1 then 'New Year Campaign'
             else 'Organic'
         end as attribution_channel,
 
         -- Create synthetic campaign types
         case
-            when is_promotional and payment_method = 'coupon' then 'Discount Campaign'
-            when is_promotional and payment_method = 'gift_card' then 'Gift Card Promotion'
+            when is_promotional then 'Discount Campaign'
             when order_quarter = 4 then 'Holiday Campaign'
             when order_quarter = 2 then 'Spring Campaign'
             when order_quarter = 3 then 'Summer Campaign'
             else 'Evergreen Campaign'
-        end as campaign_type,
-
-        -- Customer acquisition flag
-        row_number() over (partition by customer_id order by order_date) = 1 as is_new_customer
+        end as campaign_type
 
     from {{ ref('stg_customer_activity') }}
     where order_status_group = 'successful'
 ),
 
-channel_product_prefs as (
-    select
-        attribution_channel,
-        cycle_name,
-        count(*) as product_count,
-        row_number() over (partition by attribution_channel order by count(*) desc) as product_rank
-    from customer_orders
-    group by 1, 2
-),
-
 channel_performance as (
     select
-        co.attribution_channel,
+        attribution_channel,
 
         -- Volume metrics
-        count(distinct co.order_id) as total_conversions,
-        count(distinct co.customer_id) as unique_customers,
-        sum(case when co.is_new_customer then 1 else 0 end) as new_customer_acquisitions,
+        count(distinct order_id) as total_conversions,
+        count(distinct customer_id) as unique_customers,
 
         -- Revenue metrics
-        sum(co.amount) as total_revenue,
-        avg(co.amount) as avg_order_value,
-        min(co.amount) as min_order_value,
-        max(co.amount) as max_order_value,
+        sum(amount) as total_revenue,
+        avg(amount) as avg_order_value,
+        min(amount) as min_order_value,
+        max(amount) as max_order_value,
 
         -- Efficiency metrics
-        sum(co.amount) / nullif(count(distinct co.order_id), 0) as revenue_per_conversion,
-        count(distinct co.customer_id) * 1.0 / nullif(count(distinct co.order_id), 0) as customer_conversion_rate,
+        sum(amount) / nullif(count(distinct order_id), 0) as revenue_per_conversion,
+        count(distinct customer_id) * 1.0 / nullif(count(distinct order_id), 0) as customer_conversion_rate,
 
-        -- Product mix
-        max(case when cpp.product_rank = 1 then cpp.cycle_name end) as top_product,
-        count(distinct co.cycle_name) as product_diversity
+        -- Product diversity
+        count(distinct cycle_name) as product_diversity
 
-    from customer_orders co
-    left join channel_product_prefs cpp on co.attribution_channel = cpp.attribution_channel
+    from customer_orders
     group by 1
 ),
 
-campaign_performance as (
+campaign_summary as (
     select
         campaign_type,
-        attribution_channel,
-
-        -- Campaign metrics
         count(distinct order_id) as campaign_conversions,
         sum(amount) as campaign_revenue,
         count(distinct customer_id) as campaign_reach,
-        avg(amount) as campaign_aov,
-
-        -- ROI proxy (assuming cost structure)
-        case
-            when campaign_type like '%Discount%' then sum(amount) * 0.7  -- 30% cost
-            when campaign_type like '%Gift%' then sum(amount) * 0.6      -- 40% cost
-            when campaign_type like '%Holiday%' then sum(amount) * 0.75  -- 25% cost
-            else sum(amount) * 0.85                                       -- 15% cost
-        end as estimated_profit
-
+        avg(amount) as campaign_aov
     from customer_orders
-    group by 1, 2
-),
-
-customer_first_last as (
-    select
-        customer_id,
-        first_name,
-        last_name,
-        attribution_channel,
-        order_date,
-        amount,
-        row_number() over (partition by customer_id order by order_date asc) as rn_first,
-        row_number() over (partition by customer_id order by order_date desc) as rn_last
-    from customer_orders
-),
-
-customer_journey as (
-    select
-        customer_id,
-        max(first_name) as first_name,
-        max(last_name) as last_name,
-        max(case when rn_first = 1 then attribution_channel end) as first_touch_channel,
-        max(case when rn_last = 1 then attribution_channel end) as last_touch_channel,
-        count(distinct attribution_channel) as channels_engaged,
-        sum(amount) as customer_total_value
-    from customer_first_last
-    group by customer_id
-),
-
-attribution_summary as (
-    select
-        'First Touch' as attribution_model,
-        first_touch_channel as channel,
-        count(distinct customer_id) as attributed_customers,
-        sum(customer_total_value) / count(distinct customer_id) as attributed_value
-
-    from (
-        select distinct
-            customer_id,
-            first_touch_channel,
-            customer_total_value
-        from customer_journey
-    ) first_touch
-    group by 1, 2
-
-    union all
-
-    select
-        'Last Touch' as attribution_model,
-        last_touch_channel as channel,
-        count(distinct customer_id) as attributed_customers,
-        sum(customer_total_value) / count(distinct customer_id) as attributed_value
-
-    from (
-        select distinct
-            customer_id,
-            last_touch_channel,
-            customer_total_value
-        from customer_journey
-    ) last_touch
-    group by 1, 2
-),
-
-channel_trends as (
-    select
-        attribution_channel,
-        order_month,
-        count(distinct order_id) as monthly_conversions,
-        sum(amount) as monthly_revenue,
-
-        -- Calculate month-over-month growth
-        (sum(amount) - lag(sum(amount)) over (partition by attribution_channel order by order_month)) /
-            nullif(lag(sum(amount)) over (partition by attribution_channel order by order_month), 0) as mom_growth_rate
-
-    from customer_orders
-    group by 1, 2
+    group by 1
 ),
 
 final as (
@@ -197,29 +87,18 @@ final as (
         -- Performance metrics
         cp.total_conversions,
         cp.unique_customers,
-        cp.new_customer_acquisitions,
         cp.total_revenue,
         cp.avg_order_value,
         cp.revenue_per_conversion,
         cp.customer_conversion_rate,
-
-        -- Product insights
-        cp.top_product,
         cp.product_diversity,
-
-        -- Channel efficiency score (composite metric)
-        (
-            cp.revenue_per_conversion / nullif((select avg(revenue_per_conversion) from channel_performance), 0) * 0.4 +
-            cp.customer_conversion_rate / nullif((select avg(customer_conversion_rate) from channel_performance), 0) * 0.3 +
-            cp.new_customer_acquisitions * 1.0 / nullif((select sum(new_customer_acquisitions) from channel_performance), 0) * 0.3
-        ) * 100 as channel_efficiency_score,
 
         -- Channel classification
         case
-            when cp.total_revenue > (select avg(total_revenue) * 1.5 from channel_performance) then 'High Performer'
-            when cp.new_customer_acquisitions > (select avg(new_customer_acquisitions) * 1.2 from channel_performance) then 'Growth Driver'
-            when cp.avg_order_value > (select avg(avg_order_value) * 1.2 from channel_performance) then 'Premium Channel'
-            when cp.customer_conversion_rate > (select avg(customer_conversion_rate) * 1.1 from channel_performance) then 'Efficient Converter'
+            when cp.total_revenue > 10000 then 'High Performer'
+            when cp.unique_customers > 50 then 'Growth Driver'
+            when cp.avg_order_value > 75 then 'Premium Channel'
+            when cp.customer_conversion_rate > 0.8 then 'Efficient Converter'
             else 'Standard Channel'
         end as channel_classification,
 
@@ -227,7 +106,7 @@ final as (
         case
             when cp.attribution_channel = 'Promotional Campaign' and cp.revenue_per_conversion < 50 then 'Review promotion depth, may be over-discounting'
             when cp.attribution_channel = 'Social Media' and cp.product_diversity < 3 then 'Expand product promotion variety'
-            when cp.attribution_channel = 'Email Marketing' and cp.new_customer_acquisitions < 5 then 'Focus on acquisition campaigns'
+            when cp.attribution_channel = 'Email Marketing' and cp.unique_customers < 5 then 'Focus on acquisition campaigns'
             when cp.attribution_channel = 'Organic' and cp.total_conversions > 20 then 'High organic performance, invest in SEO'
             else 'Optimize channel mix for better ROI'
         end as optimization_recommendation,
