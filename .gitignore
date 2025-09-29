@@ -62,7 +62,6 @@ tmp/
 temp/
 
 # Database dumps
-*.sql
 *.dump
 
 # Jupyter
