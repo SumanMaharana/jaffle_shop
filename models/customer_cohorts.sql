@@ -27,7 +27,7 @@ cohort_orders as (
         ca.order_id,
         ca.order_date,
         ca.amount,
-        ca.product_name,
+        ca.cycle_name,
         date_trunc('month', ca.order_date) as order_month,
 
         -- Calculate months since first purchase
@@ -118,7 +118,7 @@ cohort_ltv as (
 cohort_product_mix as (
     select
         cohort_month,
-        product_name,
+        cycle_name,
         count(distinct customer_id) as customers,
         sum(amount) as product_revenue,
         row_number() over (partition by cohort_month order by sum(amount) desc) as product_rank
@@ -131,7 +131,7 @@ top_products_by_cohort as (
     select
         cohort_month,
         string_agg(
-            case when product_rank <= 3 then product_name end,
+            case when product_rank <= 3 then cycle_name end,
             ', '
             order by product_rank
         ) as top_3_products

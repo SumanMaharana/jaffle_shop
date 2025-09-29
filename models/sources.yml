@@ -141,7 +141,7 @@ sources:
             description: Order status
             tests:
               - not_null
-          - name: product_name
+          - name: cycle_name
             description: Product ordered (bicycle model)
             tests:
               - not_null
@@ -174,7 +174,7 @@ sources:
             description: Payment method used
             tests:
               - not_null
-          - name: product_name
+          - name: cycle_name
             description: Product associated with payment
             tests:
               - not_null

@@ -25,7 +25,7 @@ customer_orders as (
         o.order_id,
         o.order_date,
         o.status,
-        o.product_name,
+        o.cycle_name,
         o.order_status_group,
         o.order_month,
         o.order_year,

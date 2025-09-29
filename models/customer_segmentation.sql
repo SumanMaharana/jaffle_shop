@@ -28,8 +28,8 @@ with customer_metrics as (
         datediff('day', min(order_date), max(order_date)) as customer_lifespan_days,
 
         -- Product preferences
-        mode() within group (order by product_name) as favorite_product,
-        count(distinct product_name) as unique_products_purchased,
+        mode() within group (order by cycle_name) as favorite_product,
+        count(distinct cycle_name) as unique_products_purchased,
 
         -- Payment preferences
         mode() within group (order by payment_method) as preferred_payment_method,

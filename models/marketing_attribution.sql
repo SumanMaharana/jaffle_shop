@@ -15,7 +15,7 @@ with customer_orders as (
         last_name,
         order_id,
         order_date,
-        product_name,
+        cycle_name,
         amount,
         payment_method,
         is_promotional,
@@ -74,8 +74,8 @@ channel_performance as (
         count(distinct customer_id) * 1.0 / nullif(count(distinct order_id), 0) as customer_conversion_rate,
 
         -- Product mix
-        mode() within group (order by product_name) as top_product,
-        count(distinct product_name) as product_diversity
+        mode() within group (order by cycle_name) as top_product,
+        count(distinct cycle_name) as product_diversity
 
     from customer_orders
     group by 1

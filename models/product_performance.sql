@@ -8,7 +8,7 @@
 -- Product Performance Analytics for Marketing Insights
 with product_sales as (
     select
-        product_name,
+        cycle_name,
         order_id,
         customer_id,
         order_date,
@@ -25,7 +25,7 @@ with product_sales as (
 
 product_metrics as (
     select
-        product_name,
+        cycle_name,
 
         -- Sales metrics
         count(distinct order_id) as total_orders,
@@ -71,16 +71,16 @@ product_metrics as (
 
 product_trends as (
     select
-        product_name,
+        cycle_name,
         order_month,
         count(distinct order_id) as monthly_orders,
         sum(amount) as monthly_revenue,
         count(distinct customer_id) as monthly_customers,
 
         -- Calculate month-over-month growth
-        lag(sum(amount)) over (partition by product_name order by order_month) as prev_month_revenue,
-        (sum(amount) - lag(sum(amount)) over (partition by product_name order by order_month)) /
-            nullif(lag(sum(amount)) over (partition by product_name order by order_month), 0) as mom_growth
+        lag(sum(amount)) over (partition by cycle_name order by order_month) as prev_month_revenue,
+        (sum(amount) - lag(sum(amount)) over (partition by cycle_name order by order_month)) /
+            nullif(lag(sum(amount)) over (partition by cycle_name order by order_month), 0) as mom_growth
 
     from product_sales
     where order_status_group = 'successful'
@@ -89,7 +89,7 @@ product_trends as (
 
 product_customer_analysis as (
     select
-        product_name,
+        cycle_name,
 
         -- Repeat purchase metrics
         avg(customer_order_count) as avg_orders_per_customer,
@@ -98,7 +98,7 @@ product_customer_analysis as (
 
     from (
         select
-            product_name,
+            cycle_name,
             customer_id,
             count(distinct order_id) as customer_order_count
         from product_sales
@@ -110,7 +110,7 @@ product_customer_analysis as (
 
 product_ranking as (
     select
-        product_name,
+        cycle_name,
         total_revenue,
         total_orders,
 
@@ -137,7 +137,7 @@ product_ranking as (
 
 final as (
     select
-        pm.product_name,
+        pm.cycle_name,
 
         -- Core metrics
         pm.total_orders,
@@ -206,8 +206,8 @@ final as (
         current_timestamp as analysis_timestamp
 
     from product_metrics pm
-    left join product_customer_analysis pca on pm.product_name = pca.product_name
-    left join product_ranking pr on pm.product_name = pr.product_name
+    left join product_customer_analysis pca on pm.cycle_name = pca.cycle_name
+    left join product_ranking pr on pm.cycle_name = pr.cycle_name
 )
 
 select * from final
