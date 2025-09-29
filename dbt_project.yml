@@ -23,20 +23,12 @@ models:
   marketing:
     # Default materialization
     +materialized: table
+    +schema: marketing  # Create models in dbt_test_marketing schema
 
-    # Staging models as views
-    stg_customers:
-      +materialized: view
-      +tags: ['staging']
-    stg_orders:
-      +materialized: view
-      +tags: ['staging']
-    stg_payments:
-      +materialized: view
-      +tags: ['staging']
+    # Staging model (only stg_customer_activity remains as a model)
     stg_customer_activity:
       +materialized: view
-      +tags: ['staging']
+      +tags: ['staging', 'unified']
 
     # Marketing analytics models
     customer_segmentation:

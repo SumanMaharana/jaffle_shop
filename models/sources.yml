@@ -98,3 +98,91 @@ sources:
             description: Product name associated with this payment
             tests:
               - not_null
+
+      # Staging views created by base dbt pipeline
+      - name: stg_customers
+        description: Staging view for customers with standardized naming
+        meta:
+          created_by: "base_pipeline"
+        columns:
+          - name: customer_id
+            description: Standardized customer identifier
+            tests:
+              - unique
+              - not_null
+          - name: first_name
+            description: Customer first name
+            tests:
+              - not_null
+          - name: last_name
+            description: Customer last name
+            tests:
+              - not_null
+
+      - name: stg_orders
+        description: Staging view for orders with marketing enrichments
+        meta:
+          created_by: "base_pipeline"
+        columns:
+          - name: order_id
+            description: Standardized order identifier
+            tests:
+              - unique
+              - not_null
+          - name: customer_id
+            description: Foreign key to customer
+            tests:
+              - not_null
+          - name: order_date
+            description: Date of order placement
+            tests:
+              - not_null
+          - name: status
+            description: Order status
+            tests:
+              - not_null
+          - name: product_name
+            description: Product ordered (bicycle model)
+            tests:
+              - not_null
+          - name: order_status_group
+            description: Grouped order status for analytics
+          - name: order_month
+            description: Order month for cohort analysis
+          - name: order_year
+            description: Order year
+          - name: order_day_of_week
+            description: Day of week (0=Sunday, 6=Saturday)
+          - name: order_quarter
+            description: Order quarter for seasonal analysis
+
+      - name: stg_payments
+        description: Staging view for payments with categorizations
+        meta:
+          created_by: "base_pipeline"
+        columns:
+          - name: payment_id
+            description: Standardized payment identifier
+            tests:
+              - unique
+              - not_null
+          - name: order_id
+            description: Foreign key to orders
+            tests:
+              - not_null
+          - name: payment_method
+            description: Payment method used
+            tests:
+              - not_null
+          - name: product_name
+            description: Product associated with payment
+            tests:
+              - not_null
+          - name: amount
+            description: Payment amount in dollars
+            tests:
+              - not_null
+          - name: payment_category
+            description: Categorized payment type
+          - name: is_promotional
+            description: Flag for promotional payments

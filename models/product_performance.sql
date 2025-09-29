@@ -38,7 +38,7 @@ product_metrics as (
 
         -- Customer metrics
         count(distinct customer_id) * 1.0 / nullif(
-            (select count(distinct customer_id) from {{ ref('stg_customers') }}), 0
+            (select count(distinct customer_id) from {{ source('dbt_production', 'stg_customers') }}), 0
         ) as market_penetration,
 
         -- Return metrics

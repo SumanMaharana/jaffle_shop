@@ -2,13 +2,13 @@
 
 with orders as (
 
-    select * from {{ ref('stg_orders') }}
+    select * from {{ source('dbt_production', 'stg_orders') }}
 
 ),
 
 payments as (
 
-    select * from {{ ref('stg_payments') }}
+    select * from {{ source('dbt_production', 'stg_payments') }}
 
 ),
 
@@ -36,7 +36,7 @@ final as (
         orders.customer_id,
         orders.order_date,
         orders.status,
-        orders.cycle_name,
+        orders.product_name,
 
         {% for payment_method in payment_methods -%}
 

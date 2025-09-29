@@ -1,18 +1,18 @@
 with customers as (
 
-    select * from {{ ref('stg_customers') }}
+    select * from {{ source('dbt_production', 'stg_customers') }}
 
 ),
 
 orders as (
 
-    select * from {{ ref('stg_orders') }}
+    select * from {{ source('dbt_production', 'stg_orders') }}
 
 ),
 
 payments as (
 
-    select * from {{ ref('stg_payments') }}
+    select * from {{ source('dbt_production', 'stg_payments') }}
 
 ),
 
