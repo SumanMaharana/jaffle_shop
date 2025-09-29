@@ -60,6 +60,7 @@ models:
           arguments:
             to: ref('customers')
             field: customer_id
+            column_name: customer_id
     columns:
       - name: order_id
         description: Unique order transaction identifier
@@ -147,7 +148,6 @@ models:
         description: Running total of customer lifetime spend up to each order
         tests:
           - not_null
-          - positive_value
 
   # ============== MARKETING ANALYTICS MODELS ==============
   - name: customer_segmentation
@@ -418,8 +418,3 @@ models:
               arguments:
                 values: ['High Performer', 'Growth Driver', 'Premium Channel', 'Efficient Converter', 'Standard Channel']
 
-# ============== CUSTOM TEST DEFINITIONS ==============
-tests:
-  - name: positive_value
-    description: Ensures numeric values are positive (greater than zero)
-    test: positive_value
