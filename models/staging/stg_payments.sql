@@ -1,10 +1,12 @@
+{{
+    config(
+        materialized='view'
+    )
+}}
+
 with source as (
-    
-    {#-
-    Normally we would select from the table here, but we are using seeds to load
-    our data in this project
-    #}
-    select * from {{ ref('raw_payments') }}
+
+    select * from {{ source('dbt_production', 'payments') }}
 
 ),
 
@@ -14,10 +16,24 @@ renamed as (
         id as payment_id,
         order_id,
         payment_method,
-        cycle_name,
+        cycle_name as product_name,
 
-        -- `amount` is currently stored in cents, so we convert it to dollars
-        amount / 100 as amount
+        -- Convert amount from cents to dollars
+        amount / 100.0 as amount,
+
+        -- Marketing-specific categorizations
+        case
+            when payment_method = 'credit_card' then 'card'
+            when payment_method = 'bank_transfer' then 'bank'
+            when payment_method in ('coupon', 'gift_card') then 'promotional'
+            else 'other'
+        end as payment_category,
+
+        -- Flag for promotional payments
+        case
+            when payment_method in ('coupon', 'gift_card') then true
+            else false
+        end as is_promotional
 
     from source
 

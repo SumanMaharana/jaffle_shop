@@ -1,206 +1,424 @@
 version: 2
 
-sources:
-  - name: marketing
-    schema: dbt_production
-    description: Raw data from the jaffle shop application
-    tables:
-      - name: raw_customers
-
-        description: Raw customer data from the application database
-        meta:
-          owner: ['Candice Taylor']
-        config:
-          tags: ["raw_data", "customer_data"]
-        columns:
-          - name: id
-            description: Unique identifier for customers
-            tests:
-              - unique
-              - not_null
-          - name: first_name
-            description: Customer's first name
-          - name: last_name
-            description: Customer's last name
-
-      - name: raw_orders
-        description: Raw orders data from the application database
-        meta:
-          owner: ['Alexander Jackson']
-        config:
-          tags: ["raw_data", "order_data"]
-        columns:
-          - name: id
-            description: Unique identifier for orders
-            tests:
-              - unique
-              - not_null
-          - name: user_id
-            description: Foreign key to customers
-            tests:
-              - not_null
-          - name: order_date
-            description: Date when the order was placed
-          - name: status
-            description: Current status of the order
-            tests:
-              - accepted_values:
-                  arguments:
-                    values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
-          - name: cycle_name
-            description: Name of the cycle associated with the order
-            tests:
-              - not_null
-
-      - name: raw_payments
-        description: Raw payments data from the application database
-        meta:
-          owner: ['Brian Smith']
-        config:
-          tags: ["raw_data", "payment_data"]
-        columns:
-          - name: id
-            description: Unique identifier for payments
-            tests:
-              - unique
-              - not_null
-          - name: order_id
-            description: Foreign key to orders
-            tests:
-              - not_null
-          - name: payment_method
-            description: Method used for payment
-            tests:
-              - accepted_values:
-                  arguments:
-                    values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
-          - name: amount
-            description: Payment amount in cents
-            tests:
-              - not_null
-          - name: cycle_name
-            description: Name of the cycle associated with the payment
-            tests:
-              - not_null
-
 models:
-  - name: customers
-    meta:
-      openmetadata:
-        glossary: [
-          'Customer_Data.personal_information',
-          'Business_Metrics.customer_lifetime_value',
-          'E_Commerce.customer_behavior',
-        ]
-        tier: 'Tier.Tier2'
-        domain: Marketing
-        customProperties:
-          dbtCustomerProp: "carolyn_hill3@gmail.com"
-          dbtCustomerProp2: 78
-          nonAvailableCustomerProperty: nonAvailableValue
-        owner: ['Aaron Johnson', 'carolyn_hill3@gmail.com']
-    config:
-      tags: ["customer_analytics", "core_business", "pii_data"]
-    description: This table has basic information about a customer, as well as some derived facts based on a customer's orders
+  # ============== STAGING MODELS ==============
+  - name: stg_customers
+    description: Staging layer for customer data with standardized naming
     columns:
       - name: customer_id
-        description: This is a unique identifier for a customer
+        description: Unique customer identifier
         tests:
           - unique
           - not_null
-
       - name: first_name
-        description: Customer's first name. PII.
-
+        description: Customer first name
+        tests:
+          - not_null
       - name: last_name
-        description: Customer's last name. PII.
+        description: Customer last name
+        tests:
+          - not_null
 
-      - name: first_order
-        tags: ["temporal_data", "order_analytics"]
-        description: Date (UTC) of a customer's first order
+  - name: stg_orders
+    description: Staging layer for order data with marketing enrichments
+    columns:
+      - name: order_id
+        description: Unique order identifier
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Foreign key to customer
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      - name: order_date
+        description: Date of order placement
+        tests:
+          - not_null
+      - name: status
+        description: Order status
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['placed', 'shipped', 'completed', 'returned', 'return_pending']
+      - name: product_name
+        description: Product ordered (bicycle model)
+        tests:
+          - not_null
+      - name: order_status_group
+        description: Grouped order status for analytics
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['successful', 'returned', 'pending']
+      - name: order_day_of_week
+        description: Day of week (0=Sunday, 6=Saturday)
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1, 2, 3, 4, 5, 6]
 
-      - name: most_recent_order
-        description: Date (UTC) of a customer's most recent order
+  - name: stg_payments
+    description: Staging layer for payment data with marketing categorizations
+    columns:
+      - name: payment_id
+        description: Unique payment identifier
+        tests:
+          - unique
+          - not_null
+      - name: order_id
+        description: Foreign key to orders
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+      - name: payment_method
+        description: Payment method used
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+      - name: amount
+        description: Payment amount in dollars
+        tests:
+          - not_null
+          - positive_value
+      - name: payment_category
+        description: Categorized payment type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['card', 'bank', 'promotional', 'other']
+      - name: is_promotional
+        description: Flag for promotional payments
+        tests:
+          - not_null
 
-      - name: number_of_orders
-        tags: ["kpi_metric", "customer_behavior"]
-        description: Count of the number of orders a customer has placed
+  - name: stg_customer_activity
+    description: Unified customer activity view for marketing analytics
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - customer_id
+            - order_id
+            - payment_id
+    columns:
+      - name: customer_id
+        description: Customer identifier
+        tests:
+          - not_null
+      - name: cumulative_customer_value
+        description: Running total of customer spend
+        tests:
+          - not_null
+          - positive_value
 
-      - name: total_order_amount
-        description: Total value (AUD) of a customer's orders
-
-  - name: orders
+  # ============== MARKETING MODELS ==============
+  - name: customer_segmentation
+    description: RFM-based customer segmentation for targeted marketing
     meta:
       openmetadata:
-        glossary: [
-          'E_Commerce.order_management',
-          'Financial_Data.transaction_records',
-          'Business_Operations.fulfillment_cycle',
-        ]
+        tier: 'Tier.Tier1'
+        domain: Marketing
+        owner: ['Marketing Analytics Team']
+    config:
+      tags: ["marketing", "customer_analytics", "segmentation"]
+    tests:
+      - dbt_utils.recency:
+          datepart: day
+          field: analysis_timestamp
+          interval: 1
+    columns:
+      - name: customer_id
+        description: Unique customer identifier
+        tests:
+          - unique
+          - not_null
+      - name: days_since_last_order
+        description: Recency metric in days
+        tests:
+          - not_null
+          - positive_value
+      - name: total_orders
+        description: Frequency metric
+        tests:
+          - not_null
+          - positive_value
+      - name: total_revenue
+        description: Monetary value metric
+        tests:
+          - not_null
+          - positive_value
+      - name: avg_order_value
+        description: Average order value per customer
+        tests:
+          - not_null
+          - positive_value
+      - name: recency_score
+        description: RFM recency score (1-5)
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5]
+      - name: frequency_score
+        description: RFM frequency score (1-5)
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5]
+      - name: monetary_score
+        description: RFM monetary score (1-5)
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5]
+      - name: customer_segment
+        description: Customer segment based on RFM analysis
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Champions', 'Loyal Customers', 'Potential Loyalists', 'New Customers', 'Promising', 'Need Attention', 'At Risk', 'Cant Lose Them', 'Hibernating', 'Lost']
+      - name: value_tier
+        description: Customer value classification
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['High Value', 'Medium Value', 'Low Value']
+      - name: engagement_level
+        description: Customer engagement classification
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Highly Engaged', 'Moderately Engaged', 'Low Engagement']
+      - name: promotional_spend_ratio
+        description: Ratio of promotional spend to total spend
+        tests:
+          - not_null
+
+  - name: product_performance
+    description: Comprehensive product analytics for marketing decisions
+    meta:
+      openmetadata:
+        tier: 'Tier.Tier1'
+        domain: Marketing
+        owner: ['Product Marketing Team']
+    config:
+      tags: ["marketing", "product_analytics", "performance"]
+    tests:
+      - dbt_utils.recency:
+          datepart: day
+          field: analysis_timestamp
+          interval: 1
+    columns:
+      - name: product_name
+        description: Unique product identifier
+        tests:
+          - unique
+          - not_null
+      - name: total_orders
+        description: Total number of orders for product
+        tests:
+          - not_null
+          - positive_value
+      - name: unique_customers
+        description: Number of unique customers who purchased
+        tests:
+          - not_null
+          - positive_value
+      - name: total_revenue
+        description: Total revenue generated by product
+        tests:
+          - not_null
+          - positive_value
+      - name: return_rate
+        description: Product return rate
+        tests:
+          - not_null
+      - name: market_penetration
+        description: Percentage of total customers who bought product
+        tests:
+          - not_null
+      - name: abc_category
+        description: ABC analysis category
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['A', 'B', 'C']
+      - name: product_status
+        description: Product lifecycle status
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Star', 'Problem', 'Cash Cow', 'New', 'Declining', 'Standard']
+      - name: revenue_rank
+        description: Product ranking by revenue
+        tests:
+          - not_null
+          - positive_value
+
+  - name: customer_cohorts
+    description: Cohort analysis for retention and LTV tracking
+    meta:
+      openmetadata:
+        tier: 'Tier.Tier1'
+        domain: Marketing
+        owner: ['Retention Team']
+    config:
+      tags: ["marketing", "cohort_analysis", "retention"]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - cohort_month
+            - months_since_first_purchase
+    columns:
+      - name: cohort_month
+        description: Month when cohort started
+        tests:
+          - not_null
+      - name: months_since_first_purchase
+        description: Months elapsed since cohort start
+        tests:
+          - not_null
+      - name: cohort_size
+        description: Original size of cohort
+        tests:
+          - not_null
+          - positive_value
+      - name: customers_active
+        description: Number of active customers in period
+        tests:
+          - not_null
+      - name: retention_rate
+        description: Percentage of cohort retained
+        tests:
+          - not_null
+      - name: cohort_revenue
+        description: Revenue generated by cohort in period
+        tests:
+          - not_null
+      - name: cohort_quality
+        description: Quality classification of cohort
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Premium', 'High Value', 'Standard', 'Below Average', 'At Risk']
+      - name: retention_stage
+        description: Stage in customer lifecycle
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Acquisition', 'Activation', 'Retention', 'Revenue', 'Referral']
+
+  - name: marketing_attribution
+    description: Marketing channel attribution and performance analysis
+    meta:
+      openmetadata:
+        tier: 'Tier.Tier1'
+        domain: Marketing
+        owner: ['Performance Marketing Team']
+    config:
+      tags: ["marketing", "attribution", "channel_performance"]
+    columns:
+      - name: attribution_channel
+        description: Marketing channel attribution
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              values: ['Promotional Campaign', 'Social Media', 'Email Marketing', 'New Year Campaign', 'Organic']
+      - name: total_conversions
+        description: Total conversions by channel
+        tests:
+          - not_null
+          - positive_value
+      - name: unique_customers
+        description: Unique customers acquired
+        tests:
+          - not_null
+          - positive_value
+      - name: total_revenue
+        description: Revenue attributed to channel
+        tests:
+          - not_null
+          - positive_value
+      - name: channel_efficiency_score
+        description: Composite efficiency metric
+        tests:
+          - not_null
+      - name: channel_classification
+        description: Performance-based channel classification
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['High Performer', 'Growth Driver', 'Premium Channel', 'Efficient Converter', 'Standard Channel']
+
+  # ============== CORE BUSINESS MODELS ==============
+  - name: customers
+    description: Customer 360 view with lifetime value metrics
+    meta:
+      openmetadata:
         tier: 'Tier.Tier2'
-        domain: Banking
-        customProperties:
-          dbtCustomProperty2: "carolyn_hill3@gmail.com"
-          dbtProp: 78
-          nonAvailableProperty: nonAvailableValue
-      owner: 'Accounting'
-    description: This table has basic information about orders, as well as some derived facts based on payments
+        domain: Marketing
+        owner: ['Customer Success Team']
+    config:
+      tags: ["customer_analytics", "core_business", "pii_data"]
+    columns:
+      - name: customer_id
+        description: Unique customer identifier
+        tests:
+          - unique
+          - not_null
+      - name: first_order
+        description: Date of first order
+        tests:
+          - not_null
+      - name: most_recent_order
+        description: Date of most recent order
+        tests:
+          - not_null
+      - name: number_of_orders
+        description: Total number of orders
+        tests:
+          - not_null
+          - positive_value
+      - name: customer_lifetime_value
+        description: Total customer spend
+        tests:
+          - not_null
+          - positive_value
+
+  - name: orders
+    description: Order-level analytics with payment method breakdown
+    meta:
+      openmetadata:
+        tier: 'Tier.Tier2'
+        domain: Operations
+        owner: ['Operations Team']
     config:
       tags: ["order_analytics", "transactional_data", "core_business"]
     columns:
       - name: order_id
+        description: Unique order identifier
         tests:
           - unique
           - not_null
-        description: This is a unique identifier for an order
-
       - name: customer_id
-        description: Foreign key to the customers table
+        description: Foreign key to customers
         tests:
           - not_null
           - relationships:
-              arguments:
-                to: ref('customers')
-                field: customer_id
-
+              to: ref('customers')
+              field: customer_id
       - name: order_date
-        description: Date (UTC) that the order was placed
-
-      - name: status
-        tags: ["order_status", "workflow_tracking"]
-        description: '{{ doc("orders_status") }}'
-        tests:
-          - accepted_values:
-              arguments:
-                values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
-
-      - name: cycle_name
-        description: The name of the cycle associated with the order
+        description: Date of order
         tests:
           - not_null
-
       - name: amount
-        description: Total amount (AUD) of the order
+        description: Total order amount
         tests:
           - not_null
-
-      - name: credit_card_amount
-        description: Amount of the order (AUD) paid for by credit card
-        tests:
-          - not_null
-
-      - name: coupon_amount
-        description: Amount of the order (AUD) paid for by coupon
-        tests:
-          - not_null
-
-      - name: bank_transfer_amount
-        description: Amount of the order (AUD) paid for by bank transfer
-        tests:
-          - not_null
-
-      - name: gift_card_amount
-        description: Amount of the order (AUD) paid for by gift card
-        tests:
-          - not_null
-
+          - positive_value

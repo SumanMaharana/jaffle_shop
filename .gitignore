@@ -1,6 +1,83 @@
-
+# dbt
 target/
+dbt_packages/
 dbt_modules/
 logs/
-**/.DS_Store
+*.log
+debug_*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 venv/
+env/
+ENV/
+.venv
+
+# Testing
+test.py
+*.test.py
+test_*.py
+
+# OS files
+**/.DS_Store
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Project specific
+artifacts/
+etc/
+seeds/
+*.csv
+
+# Documentation build
+site/
+docs/_build/
+
+# Credentials and secrets
+*.env
+.env.*
+credentials.json
+keyfile.json
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+tmp/
+temp/
+
+# Database dumps
+*.sql
+*.dump
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg

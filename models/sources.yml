@@ -1,0 +1,96 @@
+version: 2
+
+sources:
+  - name: dbt_production
+    description: Production database tables containing raw customer, order, and payment data for marketing analytics
+    database: "{{ target.database }}"
+    schema: dbt_production
+    meta:
+      owner: "Marketing Analytics Team"
+      domain: "Marketing"
+      data_classification: "Internal"
+
+    tables:
+      - name: customers
+        description: Customer master data with demographic information
+        meta:
+          contains_pii: true
+          refresh_frequency: "daily"
+        columns:
+          - name: id
+            description: Unique customer identifier
+            tests:
+              - unique
+              - not_null
+          - name: first_name
+            description: Customer first name
+            tests:
+              - not_null
+          - name: last_name
+            description: Customer last name
+            tests:
+              - not_null
+
+      - name: orders
+        description: Order transaction data with product details
+        meta:
+          refresh_frequency: "hourly"
+        columns:
+          - name: id
+            description: Unique order identifier
+            tests:
+              - unique
+              - not_null
+          - name: user_id
+            description: Foreign key to customers table
+            tests:
+              - not_null
+              - relationships:
+                  to: source('dbt_production', 'customers')
+                  field: id
+          - name: order_date
+            description: Date when the order was placed
+            tests:
+              - not_null
+          - name: status
+            description: Current order status in the fulfillment process
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['placed', 'shipped', 'completed', 'returned', 'return_pending']
+          - name: cycle_name
+            description: Product name (bicycle model) for the order
+            tests:
+              - not_null
+
+      - name: payments
+        description: Payment transaction data with amounts and methods
+        meta:
+          refresh_frequency: "real-time"
+        columns:
+          - name: id
+            description: Unique payment identifier
+            tests:
+              - unique
+              - not_null
+          - name: order_id
+            description: Foreign key to orders table
+            tests:
+              - not_null
+              - relationships:
+                  to: source('dbt_production', 'orders')
+                  field: id
+          - name: payment_method
+            description: Payment method used for the transaction
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+          - name: amount
+            description: Payment amount in cents
+            tests:
+              - not_null
+          - name: cycle_name
+            description: Product name associated with this payment
+            tests:
+              - not_null
