@@ -32,8 +32,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_customers')
-              field: customer_id
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
       - name: order_date
         description: Date of order placement
         tests:
@@ -43,7 +44,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['placed', 'shipped', 'completed', 'returned', 'return_pending']
+              arguments:
+                values: ['placed', 'shipped', 'completed', 'returned', 'return_pending']
       - name: product_name
         description: Product ordered (bicycle model)
         tests:
@@ -53,13 +55,15 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['successful', 'returned', 'pending']
+              arguments:
+                values: ['successful', 'returned', 'pending']
       - name: order_day_of_week
         description: Day of week (0=Sunday, 6=Saturday)
         tests:
           - not_null
           - accepted_values:
-              values: [0, 1, 2, 3, 4, 5, 6]
+              arguments:
+                values: [0, 1, 2, 3, 4, 5, 6]
 
   - name: stg_payments
     description: Staging layer for payment data with marketing categorizations
@@ -74,14 +78,16 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_orders')
-              field: order_id
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
       - name: payment_method
         description: Payment method used
         tests:
           - not_null
           - accepted_values:
-              values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+              arguments:
+                values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
       - name: amount
         description: Payment amount in dollars
         tests:
@@ -92,7 +98,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['card', 'bank', 'promotional', 'other']
+              arguments:
+                values: ['card', 'bank', 'promotional', 'other']
       - name: is_promotional
         description: Flag for promotional payments
         tests:
@@ -102,7 +109,8 @@ models:
     description: Unified customer activity view for marketing analytics
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
+          arguments:
+            combination_of_columns:
             - customer_id
             - order_id
             - payment_id
@@ -129,9 +137,10 @@ models:
       tags: ["marketing", "customer_analytics", "segmentation"]
     tests:
       - dbt_utils.recency:
-          datepart: day
-          field: analysis_timestamp
-          interval: 1
+          arguments:
+            datepart: day
+            field: analysis_timestamp
+            interval: 1
     columns:
       - name: customer_id
         description: Unique customer identifier
@@ -163,37 +172,43 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [1, 2, 3, 4, 5]
+              arguments:
+                values: [1, 2, 3, 4, 5]
       - name: frequency_score
         description: RFM frequency score (1-5)
         tests:
           - not_null
           - accepted_values:
-              values: [1, 2, 3, 4, 5]
+              arguments:
+                values: [1, 2, 3, 4, 5]
       - name: monetary_score
         description: RFM monetary score (1-5)
         tests:
           - not_null
           - accepted_values:
-              values: [1, 2, 3, 4, 5]
+              arguments:
+                values: [1, 2, 3, 4, 5]
       - name: customer_segment
         description: Customer segment based on RFM analysis
         tests:
           - not_null
           - accepted_values:
-              values: ['Champions', 'Loyal Customers', 'Potential Loyalists', 'New Customers', 'Promising', 'Need Attention', 'At Risk', 'Cant Lose Them', 'Hibernating', 'Lost']
+              arguments:
+                values: ['Champions', 'Loyal Customers', 'Potential Loyalists', 'New Customers', 'Promising', 'Need Attention', 'At Risk', 'Cant Lose Them', 'Hibernating', 'Lost']
       - name: value_tier
         description: Customer value classification
         tests:
           - not_null
           - accepted_values:
-              values: ['High Value', 'Medium Value', 'Low Value']
+              arguments:
+                values: ['High Value', 'Medium Value', 'Low Value']
       - name: engagement_level
         description: Customer engagement classification
         tests:
           - not_null
           - accepted_values:
-              values: ['Highly Engaged', 'Moderately Engaged', 'Low Engagement']
+              arguments:
+                values: ['Highly Engaged', 'Moderately Engaged', 'Low Engagement']
       - name: promotional_spend_ratio
         description: Ratio of promotional spend to total spend
         tests:
@@ -210,9 +225,10 @@ models:
       tags: ["marketing", "product_analytics", "performance"]
     tests:
       - dbt_utils.recency:
-          datepart: day
-          field: analysis_timestamp
-          interval: 1
+          arguments:
+            datepart: day
+            field: analysis_timestamp
+            interval: 1
     columns:
       - name: product_name
         description: Unique product identifier
@@ -247,13 +263,15 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['A', 'B', 'C']
+              arguments:
+                values: ['A', 'B', 'C']
       - name: product_status
         description: Product lifecycle status
         tests:
           - not_null
           - accepted_values:
-              values: ['Star', 'Problem', 'Cash Cow', 'New', 'Declining', 'Standard']
+              arguments:
+                values: ['Star', 'Problem', 'Cash Cow', 'New', 'Declining', 'Standard']
       - name: revenue_rank
         description: Product ranking by revenue
         tests:
@@ -271,7 +289,8 @@ models:
       tags: ["marketing", "cohort_analysis", "retention"]
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
+          arguments:
+            combination_of_columns:
             - cohort_month
             - months_since_first_purchase
     columns:
@@ -305,13 +324,15 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Premium', 'High Value', 'Standard', 'Below Average', 'At Risk']
+              arguments:
+                values: ['Premium', 'High Value', 'Standard', 'Below Average', 'At Risk']
       - name: retention_stage
         description: Stage in customer lifecycle
         tests:
           - not_null
           - accepted_values:
-              values: ['Acquisition', 'Activation', 'Retention', 'Revenue', 'Referral']
+              arguments:
+                values: ['Acquisition', 'Activation', 'Retention', 'Revenue', 'Referral']
 
   - name: marketing_attribution
     description: Marketing channel attribution and performance analysis
@@ -329,7 +350,8 @@ models:
           - unique
           - not_null
           - accepted_values:
-              values: ['Promotional Campaign', 'Social Media', 'Email Marketing', 'New Year Campaign', 'Organic']
+              arguments:
+                values: ['Promotional Campaign', 'Social Media', 'Email Marketing', 'New Year Campaign', 'Organic']
       - name: total_conversions
         description: Total conversions by channel
         tests:
@@ -354,7 +376,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['High Performer', 'Growth Driver', 'Premium Channel', 'Efficient Converter', 'Standard Channel']
+              arguments:
+                values: ['High Performer', 'Growth Driver', 'Premium Channel', 'Efficient Converter', 'Standard Channel']
 
   # ============== CORE BUSINESS MODELS ==============
   - name: customers
@@ -411,8 +434,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('customers')
-              field: customer_id
+              arguments:
+                to: ref('customers')
+                field: customer_id
       - name: order_date
         description: Date of order
         tests:

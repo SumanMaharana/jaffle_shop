@@ -21,13 +21,33 @@ require-dbt-version: [">=1.0.0", "<2.0.0"]
 
 models:
   marketing:
-      materialized: table
-      staging:
-        materialized: view
+    # Default materialization
+    +materialized: table
 
-seeds:
-  marketing:
-    +schema: marketing
+    # Staging models as views
+    stg_customers:
+      +materialized: view
+      +tags: ['staging']
+    stg_orders:
+      +materialized: view
+      +tags: ['staging']
+    stg_payments:
+      +materialized: view
+      +tags: ['staging']
+    stg_customer_activity:
+      +materialized: view
+      +tags: ['staging']
+
+    # Marketing analytics models
+    customer_segmentation:
+      +tags: ['marketing', 'customer_analytics']
+    product_performance:
+      +tags: ['marketing', 'product_analytics']
+    customer_cohorts:
+      +tags: ['marketing', 'cohort_analysis']
+    marketing_attribution:
+      +tags: ['marketing', 'attribution']
+
 tests:
   +meta:
     test_suite_name: DBT TEST SUITE
