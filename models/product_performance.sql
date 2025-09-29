@@ -125,9 +125,9 @@ product_ranking as (
 
         -- ABC Analysis
         case
-            when sum(total_revenue) over (order by total_revenue desc) <=
+            when sum(total_revenue) over (order by total_revenue desc rows between unbounded preceding and current row) <=
                  sum(total_revenue) over () * 0.8 then 'A'
-            when sum(total_revenue) over (order by total_revenue desc) <=
+            when sum(total_revenue) over (order by total_revenue desc rows between unbounded preceding and current row) <=
                  sum(total_revenue) over () * 0.95 then 'B'
             else 'C'
         end as abc_category

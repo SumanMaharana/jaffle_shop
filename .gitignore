@@ -80,3 +80,5 @@ build/
 dist/
 *.egg-info/
 *.egg
+
+CLAUDE.md

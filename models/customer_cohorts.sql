@@ -130,11 +130,10 @@ cohort_product_mix as (
 top_products_by_cohort as (
     select
         cohort_month,
-        string_agg(
+        listagg(
             case when product_rank <= 3 then cycle_name end,
             ', '
-            order by product_rank
-        ) as top_3_products
+        ) within group (order by product_rank) as top_3_products
 
     from cohort_product_mix
     where product_rank <= 3

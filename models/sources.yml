@@ -120,7 +120,7 @@ sources:
               - not_null
 
       - name: stg_orders
-        description: Staging view for orders with marketing enrichments
+        description: Staging view for orders created by base pipeline
         meta:
           created_by: "base_pipeline"
         columns:
@@ -145,19 +145,9 @@ sources:
             description: Product ordered (bicycle model)
             tests:
               - not_null
-          - name: order_status_group
-            description: Grouped order status for analytics
-          - name: order_month
-            description: Order month for cohort analysis
-          - name: order_year
-            description: Order year
-          - name: order_day_of_week
-            description: Day of week (0=Sunday, 6=Saturday)
-          - name: order_quarter
-            description: Order quarter for seasonal analysis
 
       - name: stg_payments
-        description: Staging view for payments with categorizations
+        description: Staging view for payments created by base pipeline
         meta:
           created_by: "base_pipeline"
         columns:
@@ -182,7 +172,3 @@ sources:
             description: Payment amount in dollars
             tests:
               - not_null
-          - name: payment_category
-            description: Categorized payment type
-          - name: is_promotional
-            description: Flag for promotional payments

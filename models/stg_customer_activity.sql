@@ -10,11 +10,51 @@ with customers as (
 ),
 
 orders as (
-    select * from {{ source('dbt_production', 'stg_orders') }}
+    select
+        order_id,
+        customer_id,
+        order_date,
+        status,
+        cycle_name,
+
+        -- Compute date-based columns
+        date_trunc('month', order_date) as order_month,
+        extract(year from order_date) as order_year,
+        extract(dow from order_date) as order_day_of_week,
+        extract(quarter from order_date) as order_quarter,
+
+        -- Group order status for analytics
+        case
+            when status in ('completed', 'shipped', 'placed') then 'successful'
+            when status in ('returned', 'return_pending') then 'returned'
+            else 'other'
+        end as order_status_group
+
+    from {{ source('dbt_production', 'stg_orders') }}
 ),
 
 payments as (
-    select * from {{ source('dbt_production', 'stg_payments') }}
+    select
+        payment_id,
+        order_id,
+        payment_method,
+        amount,
+        cycle_name,
+
+        -- Compute payment categorization
+        case
+            when payment_method in ('credit_card', 'bank_transfer') then 'standard'
+            when payment_method in ('coupon', 'gift_card') then 'promotional'
+            else 'other'
+        end as payment_category,
+
+        -- Flag promotional payments
+        case
+            when payment_method in ('coupon', 'gift_card') then true
+            else false
+        end as is_promotional
+
+    from {{ source('dbt_production', 'stg_payments') }}
 ),
 
 customer_orders as (

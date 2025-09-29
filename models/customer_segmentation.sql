@@ -6,38 +6,62 @@
 }}
 
 -- RFM (Recency, Frequency, Monetary) Analysis for Customer Segmentation
-with customer_metrics as (
+with customer_product_prefs as (
     select
         customer_id,
-        first_name,
-        last_name,
-
-        -- Recency: Days since last order
-        datediff('day', max(order_date), current_date) as days_since_last_order,
-
-        -- Frequency: Number of orders
-        count(distinct order_id) as total_orders,
-
-        -- Monetary: Total spend
-        sum(amount) as total_revenue,
-
-        -- Additional metrics
-        avg(amount) as avg_order_value,
-        min(order_date) as first_order_date,
-        max(order_date) as last_order_date,
-        datediff('day', min(order_date), max(order_date)) as customer_lifespan_days,
-
-        -- Product preferences
-        mode() within group (order by cycle_name) as favorite_product,
-        count(distinct cycle_name) as unique_products_purchased,
-
-        -- Payment preferences
-        mode() within group (order by payment_method) as preferred_payment_method,
-        sum(case when is_promotional then amount else 0 end) as promotional_spend,
-        sum(case when is_promotional then amount else 0 end) / nullif(sum(amount), 0) as promotional_spend_ratio
-
+        cycle_name,
+        count(*) as product_count,
+        row_number() over (partition by customer_id order by count(*) desc) as product_rank
     from {{ ref('stg_customer_activity') }}
     where order_status_group = 'successful'
+    group by 1, 2
+),
+
+customer_payment_prefs as (
+    select
+        customer_id,
+        payment_method,
+        count(*) as payment_count,
+        row_number() over (partition by customer_id order by count(*) desc) as payment_rank
+    from {{ ref('stg_customer_activity') }}
+    where order_status_group = 'successful'
+    group by 1, 2
+),
+
+customer_metrics as (
+    select
+        ca.customer_id,
+        ca.first_name,
+        ca.last_name,
+
+        -- Recency: Days since last order
+        datediff('day', max(ca.order_date), current_date) as days_since_last_order,
+
+        -- Frequency: Number of orders
+        count(distinct ca.order_id) as total_orders,
+
+        -- Monetary: Total spend
+        sum(ca.amount) as total_revenue,
+
+        -- Additional metrics
+        avg(ca.amount) as avg_order_value,
+        min(ca.order_date) as first_order_date,
+        max(ca.order_date) as last_order_date,
+        datediff('day', min(ca.order_date), max(ca.order_date)) as customer_lifespan_days,
+
+        -- Product preferences
+        max(case when cpp.product_rank = 1 then cpp.cycle_name end) as favorite_product,
+        count(distinct ca.cycle_name) as unique_products_purchased,
+
+        -- Payment preferences
+        max(case when cpm.payment_rank = 1 then cpm.payment_method end) as preferred_payment_method,
+        sum(case when ca.is_promotional then ca.amount else 0 end) as promotional_spend,
+        sum(case when ca.is_promotional then ca.amount else 0 end) / nullif(sum(ca.amount), 0) as promotional_spend_ratio
+
+    from {{ ref('stg_customer_activity') }} ca
+    left join customer_product_prefs cpp on ca.customer_id = cpp.customer_id
+    left join customer_payment_prefs cpm on ca.customer_id = cpm.customer_id
+    where ca.order_status_group = 'successful'
     group by 1, 2, 3
 ),
 

@@ -54,30 +54,41 @@ with customer_orders as (
     where order_status_group = 'successful'
 ),
 
-channel_performance as (
+channel_product_prefs as (
     select
         attribution_channel,
+        cycle_name,
+        count(*) as product_count,
+        row_number() over (partition by attribution_channel order by count(*) desc) as product_rank
+    from customer_orders
+    group by 1, 2
+),
+
+channel_performance as (
+    select
+        co.attribution_channel,
 
         -- Volume metrics
-        count(distinct order_id) as total_conversions,
-        count(distinct customer_id) as unique_customers,
-        sum(case when is_new_customer then 1 else 0 end) as new_customer_acquisitions,
+        count(distinct co.order_id) as total_conversions,
+        count(distinct co.customer_id) as unique_customers,
+        sum(case when co.is_new_customer then 1 else 0 end) as new_customer_acquisitions,
 
         -- Revenue metrics
-        sum(amount) as total_revenue,
-        avg(amount) as avg_order_value,
-        min(amount) as min_order_value,
-        max(amount) as max_order_value,
+        sum(co.amount) as total_revenue,
+        avg(co.amount) as avg_order_value,
+        min(co.amount) as min_order_value,
+        max(co.amount) as max_order_value,
 
         -- Efficiency metrics
-        sum(amount) / nullif(count(distinct order_id), 0) as revenue_per_conversion,
-        count(distinct customer_id) * 1.0 / nullif(count(distinct order_id), 0) as customer_conversion_rate,
+        sum(co.amount) / nullif(count(distinct co.order_id), 0) as revenue_per_conversion,
+        count(distinct co.customer_id) * 1.0 / nullif(count(distinct co.order_id), 0) as customer_conversion_rate,
 
         -- Product mix
-        mode() within group (order by cycle_name) as top_product,
-        count(distinct cycle_name) as product_diversity
+        max(case when cpp.product_rank = 1 then cpp.cycle_name end) as top_product,
+        count(distinct co.cycle_name) as product_diversity
 
-    from customer_orders
+    from customer_orders co
+    left join channel_product_prefs cpp on co.attribution_channel = cpp.attribution_channel
     group by 1
 ),
 
@@ -104,31 +115,30 @@ campaign_performance as (
     group by 1, 2
 ),
 
-customer_journey as (
+customer_first_last as (
     select
         customer_id,
         first_name,
         last_name,
-
-        -- First touch attribution
-        first_value(attribution_channel) over (
-            partition by customer_id
-            order by order_date
-            rows between unbounded preceding and unbounded following
-        ) as first_touch_channel,
-
-        -- Last touch attribution
-        last_value(attribution_channel) over (
-            partition by customer_id
-            order by order_date
-            rows between unbounded preceding and unbounded following
-        ) as last_touch_channel,
-
-        -- Multi-touch insights
-        count(distinct attribution_channel) over (partition by customer_id) as channels_engaged,
-        sum(amount) over (partition by customer_id) as customer_total_value
-
+        attribution_channel,
+        order_date,
+        amount,
+        row_number() over (partition by customer_id order by order_date asc) as rn_first,
+        row_number() over (partition by customer_id order by order_date desc) as rn_last
     from customer_orders
+),
+
+customer_journey as (
+    select
+        customer_id,
+        max(first_name) as first_name,
+        max(last_name) as last_name,
+        max(case when rn_first = 1 then attribution_channel end) as first_touch_channel,
+        max(case when rn_last = 1 then attribution_channel end) as last_touch_channel,
+        count(distinct attribution_channel) as channels_engaged,
+        sum(amount) as customer_total_value
+    from customer_first_last
+    group by customer_id
 ),
 
 attribution_summary as (
