@@ -6,42 +6,23 @@ with customers as (
 
 orders as (
 
-    select * from {{ source('dbt_production', 'stg_orders') }}
-
-),
-
-payments as (
-
-    select * from {{ source('dbt_production', 'stg_payments') }}
+    select * from {{ ref('orders') }}
 
 ),
 
 customer_orders as (
 
-        select
+    select
         customer_id,
 
         min(order_date) as first_order,
         max(order_date) as most_recent_order,
-        count(order_id) as number_of_orders
+        count(order_id) as number_of_orders,
+        sum(amount) as total_amount
+
     from orders
 
     group by customer_id
-
-),
-
-customer_payments as (
-
-    select
-        orders.customer_id,
-        sum(amount) as total_amount
-
-    from payments
-
-    left join orders on
-         payments.order_id = orders.order_id
-
-    group by orders.customer_id
 
 ),
 
@@ -54,15 +35,12 @@ final as (
         customer_orders.first_order,
         customer_orders.most_recent_order,
         coalesce(customer_orders.number_of_orders, 0) as number_of_orders,
-        coalesce(customer_payments.total_amount, 0) as customer_lifetime_value
+        coalesce(customer_orders.total_amount, 0) as customer_lifetime_value
 
     from customers
 
     left join customer_orders
         on customers.customer_id = customer_orders.customer_id
-
-    left join customer_payments
-        on  customers.customer_id = customer_payments.customer_id
 
 )
 
