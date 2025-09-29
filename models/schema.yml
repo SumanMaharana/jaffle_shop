@@ -130,8 +130,8 @@ models:
             field: analysis_timestamp
             interval: 1
     columns:
-      - name: product_name
-        description: Unique product identifier
+      - name: cycle_name
+        description: Product name (cycle/bicycle model)
         tests:
           - unique
           - not_null
@@ -267,10 +267,6 @@ models:
         tests:
           - not_null
           - positive_value
-      - name: channel_efficiency_score
-        description: Composite efficiency metric
-        tests:
-          - not_null
       - name: channel_classification
         description: Performance-based channel classification
         tests:

@@ -53,8 +53,8 @@ final as (
         customers.last_name,
         customer_orders.first_order,
         customer_orders.most_recent_order,
-        customer_orders.number_of_orders,
-        customer_payments.total_amount as customer_lifetime_value
+        coalesce(customer_orders.number_of_orders, 0) as number_of_orders,
+        coalesce(customer_payments.total_amount, 0) as customer_lifetime_value
 
     from customers
 
