@@ -15,6 +15,7 @@ models:
           dbtCustomerProp: "carolyn_hill3@gmail.com"
           dbtCustomerProp2: 78
           nonAvailableCustomerProperty: nonAvailableValue
+          dbtEmailid: "customer.support@jaffleshop.com"
         owner: ['Aaron Johnson', 'carolyn_hill3@gmail.com']
     config:
       tags: ["customer_analytics", "core_business", "pii_data"]
@@ -60,6 +61,8 @@ models:
           dbtCustomProperty2: "carolyn_hill3@gmail.com"
           dbtProp: 78
           nonAvailableProperty: nonAvailableValue
+          dbtOrderExpiration: "31/12/2025"
+          dbtExpectedDuration: 6
       owner: 'Accounting'
     description: This table has basic information about orders, as well as some derived facts based on payments
     config:

@@ -26,6 +26,9 @@ sources:
         description: Raw orders data from the application database
         meta:
           owner: ['Alexander Jackson']
+          openmetadata:
+            customProperties:
+              dbtOrderExpiration: "15/06/2025"
         config:
           tags: ["raw_data", "order_data"]
         columns:
@@ -85,6 +88,11 @@ sources:
 models:
   - name: stg_customers
     description: Staging table for customer data - cleaned and standardized raw customer information
+    meta:
+      openmetadata:
+        customProperties:
+          dbtEmailid: "data.team@jaffleshop.com"
+          dbtExpectedDuration: 6
     columns:
       - name: customer_id
         description: Unique identifier for each customer
