@@ -29,3 +29,11 @@ tests:
   +meta:
     test_suite_name: DBT TEST SUITE
     test_suite_desciption: Dbt test suite description
+  jaffle_shop:
+    # Random tests configuration - these tests produce varying results
+    random_data_quality_check:
+      +severity: warn  # Makes the test return warnings instead of errors
+    random_customer_validation:
+      +severity: warn
+    random_payment_anomaly:
+      +severity: error  # This one can still fail hard

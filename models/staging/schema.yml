@@ -118,6 +118,12 @@ models:
         tests:
           - unique
           - not_null
+          - random_check:
+              failure_probability: 0.4
+              config:
+                severity: warn
+                warn_if: ">2"
+                error_if: ">5"
 
   - name: stg_orders
     description: Staging table for order data - cleaned and standardized raw order information
@@ -150,6 +156,12 @@ models:
         tests:
           - unique
           - not_null
+          - random_threshold:
+              max_threshold: 25
+              config:
+                severity: error
+                warn_if: ">10"
+                error_if: ">20"
       - name: payment_method
         description: |
           Payment method type (enum). Allowed values:

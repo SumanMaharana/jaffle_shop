@@ -29,6 +29,12 @@ models:
         tests:
           - unique
           - not_null
+          - random_check:
+              failure_probability: 0.5
+              config:
+                severity: warn
+                error_if: ">3"
+                warn_if: ">0"
 
       - name: first_name
         description: "Customer's first name (PII - GDPR compliant). Special chars allowed: ÄÖÜ, accents (é, ñ), hyphens, O'Brien, etc."
@@ -46,6 +52,13 @@ models:
       - name: number_of_orders
         tags: ["kpi_metric", "customer_behavior"]
         description: Count of the number of orders a customer has placed
+        tests:
+          - random_threshold:
+              max_threshold: 15
+              config:
+                severity: error
+                warn_if: ">5"
+                error_if: ">10"
 
       - name: total_order_amount
         description: |
@@ -83,6 +96,10 @@ models:
         tests:
           - unique
           - not_null
+          - random_check:
+              failure_probability: 0.3
+              config:
+                severity: warn
         description: "Unique order identifier (format: ORD-{timestamp}-{sequence}). See: https://github.com/dbt-labs/jaffle_shop/wiki/order-ids"
 
       - name: customer_id
@@ -114,6 +131,11 @@ models:
         description: Total amount (AUD) of the order
         tests:
           - not_null
+          - random_threshold:
+              max_threshold: 20
+              config:
+                warn_if: ">7"
+                error_if: ">15"
 
       - name: credit_card_amount
         description: "CC payment amount in AUD ($). Supports Visa/MC/Amex. Fee: 2.9% + $0.30. Details: https://stripe.com/docs/payments"
