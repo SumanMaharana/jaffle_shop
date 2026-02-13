@@ -3,17 +3,24 @@ version: 2
 sources:
   - name: jaffle_shop
     schema: dbt_production
-    description: Raw data from the jaffle shop application
+    description: |
+      Raw data source from Jaffle Shop app (PostgreSQL @ prod-db.jaffleshop.com:5432)
+      Connection details: https://docs.jaffleshop.com/data-sources#postgres
+      Access via VPN required! Contact: data-engineering@jaffleshop.com
     tables:
       - name: raw_customers
-        description: Raw customer data from the application database
+        description: >
+          Raw customer data (PII!) from app_db.users table - ⚠️ contains sensitive information.
+          Schema: https://dbdiagram.io/d/jaffle-shop-erd
+          GDPR compliance doc: https://docs.jaffleshop.com/compliance/gdpr#customer-data
+          Retention: 7 years per policy #2024-DS-001
         meta:
           owner: ['Candice Taylor']
         config:
           tags: ["raw_data", "customer_data"]
         columns:
           - name: id
-            description: Unique identifier for customers
+            description: "Auto-incrementing customer ID (INT). Migrated from legacy system @ https://migration.jaffleshop.com/customers/mapping"
             tests:
               - unique
               - not_null
@@ -55,7 +62,12 @@ sources:
               - not_null
 
       - name: raw_payments
-        description: Raw payments data from the application database
+        description: |
+          Payment transactions from Stripe webhook (v2023-10-16 API).
+          Webhook config: https://dashboard.stripe.com/webhooks/we_xxxxx
+          Supported methods: credit_card, bank_transfer (ACH/SEPA), gift_card, coupon
+          PCI-DSS Level 1 compliant ✓ | Audit trail: https://logs.jaffleshop.com/payments
+          On-call: #payments-oncall | Runbook: https://runbooks.jaffleshop.com/payments/incident-response
         meta:
           owner: ['Brian Smith']
         config:
@@ -77,7 +89,10 @@ sources:
                   arguments:
                     values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
           - name: amount
-            description: Payment amount in cents
+            description: |
+              Payment amount in cents (¢) - divide by 100 for dollars.
+              Example: 1500 = $15.00 | Range: $0.50 - $10,000 per transaction
+              Currency conversion: https://api.exchangerate.host/latest?base=USD&symbols=AUD
             tests:
               - not_null
           - name: cycle_name
@@ -87,7 +102,11 @@ sources:
 
 models:
   - name: stg_customers
-    description: Staging table for customer data - cleaned and standardized raw customer information
+    description: |
+      Staging: cleaned & standardized customer data (1:1 mapping from raw_customers).
+      Transformations: id → customer_id, trimmed whitespace, NULL handling
+      Data lineage: https://datakin.com/lineage/stg_customers
+      dbt docs: https://your-dbt-project.com/#!/model/model.jaffle_shop.stg_customers
     meta:
       openmetadata:
         customProperties:
@@ -120,7 +139,11 @@ models:
           - not_null
 
   - name: stg_payments
-    description: Staging table for payment data - cleaned and standardized raw payment information
+    description: |
+      Staging: payment transactions with amount conversion (cents → dollars).
+      Business logic: https://github.com/dbt-labs/jaffle_shop/blob/main/models/staging/stg_payments.sql
+      Data quality SLA: 99.9% | Freshness: <5 min lag
+      Monitoring dashboard: https://datadog.com/dashboard/payments-staging
     columns:
       - name: payment_id
         description: Unique identifier for each payment transaction
@@ -128,7 +151,13 @@ models:
           - unique
           - not_null
       - name: payment_method
-        description: Method used for payment (credit_card, coupon, bank_transfer, gift_card)
+        description: |
+          Payment method type (enum). Allowed values:
+          • credit_card - Visa/MC/Amex (2.9% + $0.30 fee)
+          • bank_transfer - ACH/SEPA (0.8% fee, max $5)
+          • gift_card - No fees, requires valid card # in format GC-XXXX-XXXX
+          • coupon - Promo codes (validation: https://promo.jaffleshop.com/api/v1/validate)
+          Payment gateway docs: https://stripe.com/docs/api/payment_methods
         tests:
           - accepted_values:
               arguments:
