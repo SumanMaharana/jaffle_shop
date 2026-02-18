@@ -1,36 +1,35 @@
--- Singular test: Random customer validation
--- Simulates a flaky data quality check
--- Returns a random subset of customers as "invalid"
+{{ config(warn_if='>0', error_if='>4') }}
 
-with random_seed as (
-    select random() as seed_value
+-- Singular test: Random customer validation
+-- Uses a SINGLE random() per run to guarantee one of three distinct outcomes:
+--   r < 0.33            → 0 rows  → SUCCESS
+--   0.33 <= r < 0.67    → 3 rows  → WARN   (>0, not >4)
+--   r >= 0.67           → 10 rows → FAIL   (>4)
+
+with
+random_val as (
+    select random() as r
 ),
 
-flagged_customers as (
+series as (
+    select generate_series(1, 10) as n
+),
+
+result as (
     select
-        c.customer_id,
-        c.first_name,
-        c.last_name,
-        random() as random_score,
+        n                                              as row_index,
+        'Randomly flagged customer record'             as test_message,
         case
-            when random() < 0.2 then 'FAIL'
-            when random() < 0.5 then 'WARN'
-            else 'PASS'
-        end as test_status
-    from {{ ref('customers') }} c
-    cross join random_seed
+            when (select r from random_val) >= 0.67 then 'FAIL'
+            else 'WARN'
+        end                                            as status,
+        round((select r from random_val)::numeric, 4) as random_value
+    from series
+    cross join random_val
+    where
+        (r >= 0.33 and r < 0.67 and n <= 3)   -- WARN: 3 rows
+        or (r >= 0.67)                          -- FAIL: 10 rows
+        -- SUCCESS: r < 0.33 returns 0 rows
 )
 
-select
-    customer_id,
-    first_name,
-    last_name,
-    random_score,
-    test_status,
-    'Randomly flagged customer record - test status: ' || test_status as message
-from flagged_customers
-where test_status in ('FAIL', 'WARN')
-    and random() < 0.4  -- 40% chance of being included in failed results
-
--- This test randomly identifies "problematic" records
--- Each run produces different results!
+select * from result

@@ -1,24 +1,31 @@
--- Singular test: Random data quality check
--- This test randomly returns 0-10 rows, causing random pass/fail/warn
--- Status depends on how many rows are returned:
---   0 rows = SUCCESS
---   1-5 rows = WARNING (if configured with warn_if)
---   >5 rows = FAILURE
+{{ config(warn_if='>0', error_if='>3') }}
 
--- Random number generator (0-1)
--- We use it to decide how many "bad" records to return
+-- Singular test: Random data quality check on orders
+-- Uses a SINGLE random() per run to guarantee one of three distinct outcomes:
+--   r < 0.33            → 0 rows  → SUCCESS
+--   0.33 <= r < 0.67    → 2 rows  → WARN   (>0, not >3)
+--   r >= 0.67           → 8 rows  → FAIL   (>3)
 
-select
-    order_id,
-    amount,
-    random() as random_value,
-    'Random test - this may pass, warn, or fail' as test_message
-from {{ ref('orders') }}
-where random() < 0.3  -- 30% chance each row is selected
-limit 10
+with
+random_val as (
+    select random() as r
+),
 
--- Run this test multiple times and you'll see different results!
--- Configure in dbt_project.yml with:
--- tests:
---   jaffle_shop:
---     +severity: warn  # Makes failures into warnings
+series as (
+    select generate_series(1, 8) as n
+),
+
+result as (
+    select
+        n                                          as row_index,
+        'Random data quality check failure'        as test_message,
+        round((select r from random_val)::numeric, 4) as random_value
+    from series
+    cross join random_val
+    where
+        (r >= 0.33 and r < 0.67 and n <= 2)   -- WARN: 2 rows
+        or (r >= 0.67)                          -- FAIL: 8 rows
+        -- SUCCESS: r < 0.33 returns 0 rows
+)
+
+select * from result
