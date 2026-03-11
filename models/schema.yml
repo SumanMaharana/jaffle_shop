@@ -2,23 +2,23 @@ version: 2
 
 models:
   - name: customers
-    meta:
-      openmetadata:
-        glossary: [
-          'Customer_Data.personal_information',
-          'Business_Metrics.customer_lifetime_value',
-          'E_Commerce.customer_behavior',
-        ]
-        tier: 'Tier.Tier2'
-        domain: Marketing
-        customProperties:
-          dbtCustomerProp: "carolyn_hill3@gmail.com"
-          dbtCustomerProp2: 78
-          nonAvailableCustomerProperty: nonAvailableValue
-          dbtEmailid: "customer.support@jaffleshop.com"
-        owner: ['Aaron Johnson', 'carolyn_hill3@gmail.com']
     config:
       tags: ["customer_analytics", "core_business", "pii_data"]
+      meta:
+        openmetadata:
+          glossary: [
+            'Customer_Data.personal_information',
+            'Business_Metrics.customer_lifetime_value',
+            'E_Commerce.customer_behavior',
+          ]
+          tier: 'Tier.Tier2'
+          domain: Marketing
+          customProperties:
+            dbtCustomerProp: "carolyn_hill3@gmail.com"
+            dbtCustomerProp2: 78
+            nonAvailableCustomerProperty: nonAvailableValue
+            dbtEmailid: "customer.support@jaffleshop.com"
+          owner: ['Aaron Johnson', 'carolyn_hill3@gmail.com']
     description: >
       Customer master table with 360° view of customer analytics. Contains PII data - handle with care!
       For more details, see: https://docs.jaffleshop.com/customers & https://api.jaffleshop.com/v1/customers
@@ -30,8 +30,9 @@ models:
           - unique
           - not_null
           - random_check:
-              warn_rows: 3
-              fail_rows: 12
+              arguments:
+                warn_rows: 3
+                fail_rows: 12
               config:
                 severity: warn
                 warn_if: ">0"
@@ -57,7 +58,8 @@ models:
           tags: ["kpi_metric", "customer_behavior"]
         tests:
           - random_threshold:
-              max_threshold: 15
+              arguments:
+                max_threshold: 15
               config:
                 warn_if: ">0"
                 error_if: ">5"
@@ -69,38 +71,39 @@ models:
           Reference: https://docs.jaffleshop.com/metrics/clv#calculation-method
 
   - name: orders
-    meta:
-      openmetadata:
-        glossary: [
-          'E_Commerce.order_management',
-          'Financial_Data.transaction_records',
-          'Business_Operations.fulfillment_cycle',
-        ]
-        tier: 'Tier.Tier2'
-        domain: Banking
-        customProperties:
-          dbtCustomProperty2: "carolyn_hill3@gmail.com"
-          dbtProp: 78
-          nonAvailableProperty: nonAvailableValue
-          dbtOrderExpiration: "31/12/2025"
-          dbtExpectedDuration: 6
-      owner: 'Accounting'
+    config:
+      tags: ["order_analytics", "transactional_data", "core_business"]
+      meta:
+        openmetadata:
+          glossary: [
+            'E_Commerce.order_management',
+            'Financial_Data.transaction_records',
+            'Business_Operations.fulfillment_cycle',
+          ]
+          tier: 'Tier.Tier2'
+          domain: Banking
+          customProperties:
+            dbtCustomProperty2: "carolyn_hill3@gmail.com"
+            dbtProp: 78
+            nonAvailableProperty: nonAvailableValue
+            dbtOrderExpiration: "31/12/2025"
+            dbtExpectedDuration: 6
+          owner: 'Accounting'
     description: |
       Order fact table with payment breakdowns & status tracking.
       Business rules: https://confluence.jaffleshop.com/orders/business-logic
       API endpoint: POST https://api.jaffleshop.com/v2/orders/{order_id}
       Slack: #orders-team | Email: orders@jaffleshop.com
       Note: Amounts use AUD currency (A$) with 2 decimal precision
-    config:
-      tags: ["order_analytics", "transactional_data", "core_business"]
     columns:
       - name: order_id
         tests:
           - unique
           - not_null
           - random_check:
-              warn_rows: 3
-              fail_rows: 12
+              arguments:
+                warn_rows: 3
+                fail_rows: 12
               config:
                 warn_if: ">0"
                 error_if: ">3"
@@ -111,8 +114,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('customers')
-              field: customer_id
+              arguments:
+                to: ref('customers')
+                field: customer_id
 
       - name: order_date
         description: Date (UTC) that the order was placed
@@ -123,7 +127,8 @@ models:
           tags: ["order_status", "workflow_tracking"]
         tests:
           - accepted_values:
-              values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
+              arguments:
+                values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
 
       - name: cycle_name
         description: The name of the cycle associated with the order
@@ -135,7 +140,8 @@ models:
         tests:
           - not_null
           - random_threshold:
-              max_threshold: 20
+              arguments:
+                max_threshold: 20
               config:
                 warn_if: ">0"
                 error_if: ">6"
@@ -159,4 +165,3 @@ models:
         description: Amount of the order (AUD) paid for by gift card
         tests:
           - not_null
-

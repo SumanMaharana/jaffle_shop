@@ -14,10 +14,10 @@ sources:
           Schema: https://dbdiagram.io/d/jaffle-shop-erd
           GDPR compliance doc: https://docs.jaffleshop.com/compliance/gdpr#customer-data
           Retention: 7 years per policy #2024-DS-001
-        meta:
-          owner: ['Candice Taylor']
         config:
           tags: ["raw_data", "customer_data"]
+          meta:
+            owner: ['Candice Taylor']
         columns:
           - name: id
             description: "Auto-incrementing customer ID (INT). Migrated from legacy system @ https://migration.jaffleshop.com/customers/mapping"
@@ -31,13 +31,13 @@ sources:
 
       - name: raw_orders
         description: Raw orders data from the application database
-        meta:
-          owner: ['Alexander Jackson']
-          openmetadata:
-            customProperties:
-              dbtOrderExpiration: "15/06/2025"
         config:
           tags: ["raw_data", "order_data"]
+          meta:
+            owner: ['Alexander Jackson']
+            openmetadata:
+              customProperties:
+                dbtOrderExpiration: "15/06/2025"
         columns:
           - name: id
             description: Unique identifier for orders
@@ -54,7 +54,8 @@ sources:
             description: Current status of the order
             tests:
               - accepted_values:
-                  values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
+                  arguments:
+                    values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
           - name: cycle_name
             description: Name of the cycle associated with the order
             tests:
@@ -67,10 +68,10 @@ sources:
           Supported methods: credit_card, bank_transfer (ACH/SEPA), gift_card, coupon
           PCI-DSS Level 1 compliant ✓ | Audit trail: https://logs.jaffleshop.com/payments
           On-call: #payments-oncall | Runbook: https://runbooks.jaffleshop.com/payments/incident-response
-        meta:
-          owner: ['Brian Smith']
         config:
           tags: ["raw_data", "payment_data"]
+          meta:
+            owner: ['Brian Smith']
         columns:
           - name: id
             description: Unique identifier for payments
@@ -85,7 +86,8 @@ sources:
             description: Method used for payment
             tests:
               - accepted_values:
-                  values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+                  arguments:
+                    values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
           - name: amount
             description: |
               Payment amount in cents (¢) - divide by 100 for dollars.
@@ -105,11 +107,12 @@ models:
       Transformations: id → customer_id, trimmed whitespace, NULL handling
       Data lineage: https://datakin.com/lineage/stg_customers
       dbt docs: https://your-dbt-project.com/#!/model/model.jaffle_shop.stg_customers
-    meta:
-      openmetadata:
-        customProperties:
-          dbtEmailid: "data.team@jaffleshop.com"
-          dbtExpectedDuration: 6
+    config:
+      meta:
+        openmetadata:
+          customProperties:
+            dbtEmailid: "data.team@jaffleshop.com"
+            dbtExpectedDuration: 6
     columns:
       - name: customer_id
         description: Unique identifier for each customer
@@ -117,8 +120,9 @@ models:
           - unique
           - not_null
           - random_check:
-              warn_rows: 3
-              fail_rows: 12
+              arguments:
+                warn_rows: 3
+                fail_rows: 12
               config:
                 warn_if: ">0"
                 error_if: ">3"
@@ -135,7 +139,8 @@ models:
         description: Current status of the order (placed, shipped, completed, return_pending, returned)
         tests:
           - accepted_values:
-              values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
+              arguments:
+                values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
       - name: cycle_name
         description: Name of the cycle associated with the order
         tests:
@@ -154,7 +159,8 @@ models:
           - unique
           - not_null
           - random_threshold:
-              max_threshold: 25
+              arguments:
+                max_threshold: 25
               config:
                 warn_if: ">0"
                 error_if: ">8"
@@ -168,4 +174,5 @@ models:
           Payment gateway docs: https://stripe.com/docs/api/payment_methods
         tests:
           - accepted_values:
-              values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+              arguments:
+                values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
