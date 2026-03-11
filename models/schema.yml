@@ -44,15 +44,17 @@ models:
         description: Customer's last name. PII.
 
       - name: first_order
-        tags: ["temporal_data", "order_analytics"]
         description: Date (UTC) of a customer's first order
+        config:
+          tags: ["temporal_data", "order_analytics"]
 
       - name: most_recent_order
         description: Date (UTC) of a customer's most recent order
 
       - name: number_of_orders
-        tags: ["kpi_metric", "customer_behavior"]
         description: Count of the number of orders a customer has placed
+        config:
+          tags: ["kpi_metric", "customer_behavior"]
         tests:
           - random_threshold:
               max_threshold: 15
@@ -109,20 +111,19 @@ models:
         tests:
           - not_null
           - relationships:
-              arguments:
-                to: ref('customers')
-                field: customer_id
+              to: ref('customers')
+              field: customer_id
 
       - name: order_date
         description: Date (UTC) that the order was placed
 
       - name: status
-        tags: ["order_status", "workflow_tracking"]
         description: '{{ doc("orders_status") }}'
+        config:
+          tags: ["order_status", "workflow_tracking"]
         tests:
           - accepted_values:
-              arguments:
-                values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
+              values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
 
       - name: cycle_name
         description: The name of the cycle associated with the order

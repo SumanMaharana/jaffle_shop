@@ -54,8 +54,7 @@ sources:
             description: Current status of the order
             tests:
               - accepted_values:
-                  arguments:
-                    values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
+                  values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
           - name: cycle_name
             description: Name of the cycle associated with the order
             tests:
@@ -86,8 +85,7 @@ sources:
             description: Method used for payment
             tests:
               - accepted_values:
-                  arguments:
-                    values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+                  values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
           - name: amount
             description: |
               Payment amount in cents (¢) - divide by 100 for dollars.
@@ -137,8 +135,7 @@ models:
         description: Current status of the order (placed, shipped, completed, return_pending, returned)
         tests:
           - accepted_values:
-              arguments:
-                values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
+              values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
       - name: cycle_name
         description: Name of the cycle associated with the order
         tests:
@@ -171,5 +168,4 @@ models:
           Payment gateway docs: https://stripe.com/docs/api/payment_methods
         tests:
           - accepted_values:
-              arguments:
-                values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+              values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
